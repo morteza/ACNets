@@ -7,4 +7,4 @@ TODO
 
 # Data
 
-Please see [`data/` folder](data/) for details on where to put the data.
+Please see the [`data/` folder](data/) for details on where to put the data.
