@@ -1,0 +1,28 @@
+% to confirm csv behavioral data matches the mat files
+% run this in the root directory of julia
+
+in_dir = 'Behavioral_Data/';
+out_dir = 'Behavioral_Data_csv/';
+
+
+mat_files = dir(fullfile(in_dir,'**/*.mat'));
+
+if ~exist(out_dir, 'dir')
+    mkdir(out_dir)
+end
+    
+for f = 1:length(mat_files)
+  file = mat_files(f);
+  full_path = fullfile(file.folder, file.name);
+  disp(full_path);
+  data = load(full_path);
+
+  % `frame` embeds another table which might not be useful right now.
+  trial_headers = fieldnames(rmfield(data.trial,'frame'));
+  data.trials = data.trials(:,1:end-1);
+  data.trial = cell2struct(data.trials, trial_headers, 2);
+  
+  writetable(struct2table(data.trial),strcat(out_dir, strrep(file.name,'.mat','_trials.csv')));
+  writetable(struct2table(data.block),strcat(out_dir, strrep(file.name,'.mat','_blocks.csv')));
+  writetable(struct2table(data.event),strcat(out_dir, strrep(file.name,'.mat','_events.csv')));
+end
