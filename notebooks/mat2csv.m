@@ -1,6 +1,3 @@
-% to confirm csv behavioral data matches the mat files
-% run this in the root directory of julia
-
 in_dir = 'Behavioral_Data/';
 out_dir = 'Behavioral_Data_csv/';
 
@@ -25,4 +22,8 @@ for f = 1:length(mat_files)
   writetable(struct2table(data.trial),strcat(out_dir, strrep(file.name,'.mat','_trials.csv')));
   writetable(struct2table(data.block),strcat(out_dir, strrep(file.name,'.mat','_blocks.csv')));
   writetable(struct2table(data.event),strcat(out_dir, strrep(file.name,'.mat','_events.csv')));
+
+  if isfield(data,'p')
+    writetable(struct2table(data.p),strcat(out_dir, strrep(file.name,'.mat','_parameters.csv')));
+  end
 end
