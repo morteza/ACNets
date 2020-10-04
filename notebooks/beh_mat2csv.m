@@ -1,5 +1,6 @@
-in_dir = 'Behavioral_Data/';
-out_dir = 'Behavioral_Data_csv/';
+% Use relative path starting from the project directory.
+in_dir = 'data/julia2018_raw/Behavioral_Data/';
+out_dir = 'data/julia2918_beh/';
 
 
 mat_files = dir(fullfile(in_dir,'**/*.mat'));
