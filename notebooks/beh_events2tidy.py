@@ -78,13 +78,19 @@ def get_trial(events):
   })
 
 
-for csv_file in Path(input_dir).glob('**/*_events.csv'):
+for csv_file in Path(input_dir).glob('**/NVGP07_A1_events.csv'):
 
   participant_id, session_index = re.search('([^_]+)_(.+)_events',
                                             csv_file.stem,
                                             re.IGNORECASE).groups()
-  print(csv_file.stem)
+
   print(f'parsing {participant_id} (Session {session_index})...')
+
+  output_path = Path(output_dir).joinpath(csv_file.stem + '.csv')
+
+  TRIAL_PARAMS = pd.read_csv(str(csv_file).replace('_events', '_trials'))
+  TRIAL_PARAMS['trial_index'] = TRIAL_PARAMS.index + 1
+
   EVENTS = pd.read_csv(str(csv_file))
   EVENTS.sort_values(by='realTime', inplace=True)
 
@@ -92,14 +98,15 @@ for csv_file in Path(input_dir).glob('**/*_events.csv'):
 
   EVENTS = EVENTS[~EVENTS.type.str.contains('trigger|block', regex=True)]
 
+  # not clear which trial those 'missing arm' events must belong to.
   EVENTS['trial_index'] = (EVENTS.type.str.contains('cue: ')
                                       .replace(False, np.nan)
                                       .cumsum()
                                       .ffill())
-  # not clear which trial those 'missing arm' events belong to.
+
   TRIALS = EVENTS.groupby(['trial_index'], as_index=False).apply(get_trial)
   TRIALS['rt'] = TRIALS.response_timestamp - TRIALS.stimulus_timestamp
-  TRIALS['correct'] = (TRIALS.stimulus == TRIALS.response) & ~TRIALS.rt.isna()
+  TRIALS['correct'] = (TRIALS.stimulus == TRIALS.response) & (TRIALS.rt > 0)
 
-  output_path = Path(output_dir).joinpath(csv_file.stem + '.csv')
+  TRIALS = TRIALS.merge(TRIAL_PARAMS, on='trial_index')
   TRIALS.to_csv(output_path)
