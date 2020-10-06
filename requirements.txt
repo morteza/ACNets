@@ -1,0 +1,12 @@
+numpy
+scipy
+pandas
+matplotlib
+pytest
+pytest-plt
+tox
+flake8
+pep8-naming
+flake8-todo
+# nipype
+dicom2nifti

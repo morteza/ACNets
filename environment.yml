@@ -1,2 +1,20 @@
-- nibabel
-- dicom2nifti
+name: acnets
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pip
+  - dcm2niix
+  - nipype
+  - pip:
+    - numpy
+    - scipy
+    - pandas
+    - matplotlib
+    - pytest
+    - pytest-plt
+    - tox
+    - flake8
+    - pep8-naming
+    - flake8-todo
+    - dicom2nifti
