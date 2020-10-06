@@ -1,33 +1,42 @@
 # %%
-
-""" Note: for convenience, resting-state is considered session 3, which is
-          compatible with datatimes of the imaging files."""
-
+import os
 from pathlib import Path
 import shutil
 import json
 
+# Parameters. TODO: use a better approach to parametrize this script
 rest_dir = Path('data/julia2018_raw/Resting_State')
 bids_dir = Path('data/julia2018_BIDS/')
+
 dataset_description = {
     'Name': 'Julia 2018 Dataset',
     'BIDSVersion': '1.4.0',
     'DatasetType': 'raw',
     'Authors': ['Julia', 'Daphne']
 }
-
 task_rest_sidecar = {
     'TaskName': 'rest'
 }
 
 
-def dcm2bids(dcm_dir, out_dir, out_filename):
+def dcm2bids(dcm_dir: Path,
+             out_dir: Path,
+             out_filename: str,
+             overwrite: bool = True):
   """Converts raw DCM files to BIDS-compatible Nifti and sidecar.
-
-  # TODO warn if out_file exist; dcm2niix adds suffixes if out_file exists
 
   """
   from nipype.interfaces.dcm2nii import Dcm2niix
+
+  if not overwrite and (out_dir / f'{out_filename}.nii.gz').exists():
+    # warn if out_file exists; dcm2niix adds suffixes if out_file exists,
+    # and make the BIDS incompatible.
+    raise Exception(
+        f'[dcm2bids] Nifti already exists: "{out_filename}.nii.gz". '
+        f'Delete it or enable overwrite flag in dcm2bids(...) function.')
+
+  # delete existing file
+  os.remove(str(out_dir / f'{out_filename}.nii.gz'))
 
   converter = Dcm2niix()
 
@@ -36,6 +45,7 @@ def dcm2bids(dcm_dir, out_dir, out_filename):
   converter.inputs.compress = 'i'
   converter.inputs.output_dir = out_dir
   converter.inputs.out_filename = out_filename
+
   # DEBUG Path(out_dir).mkdir(parents=True, exist_ok=True)
   # DEBUG converter.inputs.has_private = False
   # DEBUG converter.cmdline
@@ -44,7 +54,6 @@ def dcm2bids(dcm_dir, out_dir, out_filename):
 
 
 # 1.
-# TODO warn if directory already exists
 bids_dir.mkdir(exist_ok=True)
 
 # 2.
