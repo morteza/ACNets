@@ -18,3 +18,4 @@ dependencies:
     - pep8-naming
     - flake8-todo
     - dicom2nifti
+    - fmriprep-docker

@@ -8,5 +8,6 @@ tox
 flake8
 pep8-naming
 flake8-todo
-# nipype
-dicom2nifti
+# nipype          # use conda
+# dicom2nifti     # use dcm2niix instead for sidecars
+fmriprep-docker
