@@ -1,17 +1,22 @@
 # HPC Jobs
 
-TODO: give an overview in more detail
+TODO: give an overview
 
 
 ## Submitting jobs
 
-Run the following on HPC Iris to submit a batch job; it returns the `<job_id>` which will be used during the next steps.
+The following code submits a job to HPC and returns the `<job_id>`, which will be used in the next steps.
 
 ```bash
 cd jobs/
 sbatch <job>.sh
 ```
 
+to see expected start time of your submissions:
+
+```bash
+squeue --start -u $USER
+```
 
 to cancel the job:
 
@@ -22,7 +27,7 @@ scancel <job_id>
 to check scheduling details of all your submissions:
 
 ```bash
-squeue -u `whoami`
+squeue -u $USER
 ```
 
 to see scheduling details of a specific job:
