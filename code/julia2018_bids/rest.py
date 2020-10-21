@@ -16,7 +16,7 @@ from utils import dcm2bids
 
 
 @dataclass
-class Julia2018RestBIDSifier():
+class Julia2018RestingPreprocessor():
   """Prepares BIDS-compatible resting state data."""
 
   in_dir: PathLike
@@ -52,7 +52,7 @@ class Julia2018RestBIDSifier():
     for sub, julia_sub in self.subjects.items():
       self.init_folder_structure(sub)
       self.copy_rest_t1w(sub, julia_sub)
-      # self.convert_rest_bold(sub, julia_sub)
+      self.convert_rest_bold(sub, julia_sub)
       self.copy_rest_fmap(sub, julia_sub)
 
     self.create_task_sidecar()
@@ -169,7 +169,7 @@ class Julia2018RestBIDSifier():
     return all(conditions)
 
 
-# to test the Julia2018RestBIDSifier
+# to test the Julia2018RestingPreprocessor
 if __name__ == "__main__":
 
   logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -177,6 +177,7 @@ if __name__ == "__main__":
   in_dir = Path('data/julia2018_raw')
   out_dir = Path('data/julia2018_bids2')
 
-  bidsifier = Julia2018RestBIDSifier(in_dir, out_dir, overwrite=True)
-  bidsifier.run()
-  print('BIDS validation result for the output dataset:', bidsifier.is_valid())
+  preprocessor = Julia2018RestingPreprocessor(in_dir, out_dir, overwrite=True)
+  preprocessor.run()
+  print('BIDS validation result for the output dataset:',
+        preprocessor.is_valid())
