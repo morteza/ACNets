@@ -1,6 +1,3 @@
-import sys
-import logging
-
 from os import PathLike
 from pathlib import Path
 
@@ -48,9 +45,9 @@ class Julia2018BehavioralPreprocessor():
     elif len(cue_events) > 1:
       print('trial', trial_index, ': multiple cues')
 
-    if len(response_events) == 0:
-      print('trial', trial_index, ': no response')
-    elif len(response_events) > 1:
+    # if len(response_events) == 0:
+    #   print('trial', trial_index, ': no response')
+    if len(response_events) > 1:
       response_events = response_events.iloc[[0]]
       print('trial', trial_index, ': multiple responses')
 
@@ -109,9 +106,6 @@ class Julia2018BehavioralPreprocessor():
 
       group = re.search('([A-Z]+).*', sub).group(1)
 
-      # TODO replace VGP with AVGP
-
-
       print(f'>>> parsing {sub} (Session {ses})...')
 
       TRIAL_PARAMS = pd.read_csv(str(csv_file).replace('_events', '_trials'))
@@ -120,13 +114,19 @@ class Julia2018BehavioralPreprocessor():
       TRIAL_PARAMS['session'] = ses
       TRIAL_PARAMS['trial_index'] = TRIAL_PARAMS.index + 1
       TRIAL_PARAMS['has_missing_arms'] = TRIAL_PARAMS.missingArms > 0
-      TRIAL_PARAMS.replace({'type': {
-          'standardvalid': 'standard_valid',
-          'standardinvalid': 'standard_invalid',
-          'deviantvalid': 'distractor_valid',
-          'deviantinvalid': 'distractor_invalid',
-          'cue': 'catch'
-      }}, inplace=True)
+      TRIAL_PARAMS.replace({
+          'type': {
+              'standardvalid': 'standard_valid',
+              'standardinvalid': 'standard_invalid',
+              'deviantvalid': 'distractor_valid',
+              'deviantinvalid': 'distractor_invalid',
+              'cue': 'catch'
+          },
+          'group': {
+              'VGP': 'AVGP',
+              'AVG': 'AVGP',
+              'NAVGP': 'NVGP'
+          }}, inplace=True)
 
       TRIAL_PARAMS.rename({
           'type': 'trial_type',
@@ -193,11 +193,16 @@ class Julia2018BehavioralPreprocessor():
           'response_timestamp'
       ]]
 
+      # VGP -> AVGP
+      group = TRIALS.group.unique()[0]
+      sub = group + sub[(-5 if sub.endswith('NEW') else -2):]
+
       beh_dir = self.bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'beh'
-      out_file = beh_dir / f'sub-{sub}_ses-{ses}_task-{ses}.csv'
+      out_file = beh_dir / f'sub-{sub}_ses-{ses}_task-{ses}.tsv'
 
       beh_dir.mkdir(parents=True, exist_ok=True)
-      TRIALS.to_csv(out_file)
+
+      TRIALS.to_csv(out_file, sep='\t')  # .tsv
 
   def is_valid(self):
     layout = BIDSLayout(self.bids_dir, validate=True)
@@ -209,17 +214,3 @@ class Julia2018BehavioralPreprocessor():
       path = f.replace(str(self.bids_dir.absolute()), '')
       conditions.append(validator.is_bids(path))
     return all(conditions)
-
-
-# to test the Julia2018BehavioralPreprocessor
-if __name__ == "__main__":
-
-  logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-
-  raw_beh_dir = Path('data/julia2018_raw_beh')
-  bids_dir = Path('data/julia2018_bids')
-
-  preprocessor = Julia2018BehavioralPreprocessor(raw_beh_dir, bids_dir)
-  preprocessor.run()
-  print('BIDS validation result for the output dataset:',
-        preprocessor.is_valid())

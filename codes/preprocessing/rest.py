@@ -1,4 +1,3 @@
-import sys
 import logging
 
 from os import PathLike
@@ -12,7 +11,7 @@ from dataclasses import dataclass
 from bids.layout import BIDSLayout
 from bids.layout import BIDSValidator
 
-from utils import dcm2bids
+from .utils import dcm2bids
 
 
 @dataclass
@@ -41,7 +40,7 @@ class Julia2018RestingPreprocessor():
     # key: sub; value: folder_name (julia_sub)
     self.subjects = {
         # rename VGP/NVGP => AVGP/NVGP
-        s.stem.replace('VGP', 'AVG')
+        s.stem.replace('VGP', 'AVGP')
         if s.stem.startswith('VGP') else s.stem: s.stem
         for s in self.rest_dir.iterdir() if s.is_dir()
     }
@@ -167,17 +166,3 @@ class Julia2018RestingPreprocessor():
       path = f.replace(str(self.out_dir.absolute()), '')
       conditions.append(validator.is_bids(path))
     return all(conditions)
-
-
-# to test the Julia2018RestingPreprocessor
-if __name__ == "__main__":
-
-  logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-
-  in_dir = Path('data/julia2018_raw')
-  out_dir = Path('data/julia2018_bids2')
-
-  preprocessor = Julia2018RestingPreprocessor(in_dir, out_dir, overwrite=True)
-  preprocessor.run()
-  print('BIDS validation result for the output dataset:',
-        preprocessor.is_valid())
