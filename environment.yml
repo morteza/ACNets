@@ -19,3 +19,4 @@ dependencies:
     - flake8-todo
     - dicom2nifti
     - fmriprep-docker
+    - pybids

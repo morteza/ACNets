@@ -11,3 +11,4 @@ flake8-todo
 # nipype          # use conda
 # dicom2nifti     # use dcm2niix instead for sidecars
 fmriprep-docker
+pybids

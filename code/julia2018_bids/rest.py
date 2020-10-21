@@ -9,6 +9,9 @@ import json
 
 from dataclasses import dataclass
 
+from bids.layout import BIDSLayout
+from bids.layout import BIDSValidator
+
 from utils import dcm2bids
 
 
@@ -20,41 +23,46 @@ class Julia2018RestBIDSifier():
   out_dir: PathLike
   session: str = 'rest'
   task_name: str = 'rest'
+  overwrite: bool = False
 
   def __post_init__(self) -> None:
 
-    if isinstance(self.in_dir, str):
-      self.in_dir = Path(self.in_dir)
-    if isinstance(self.out_dir, str):
-      self.out_dir = Path(self.out_dir)
+    self.in_dir = Path(self.in_dir)
+    self.out_dir = Path(self.out_dir)
+
+    if (not self.overwrite) and self.out_dir.exists():
+      raise Exception('Output directory exists. Either set the `overwrite`'
+                      ' or use a different output dirctory.')
 
     self.rest_dir = self.in_dir / 'Resting_State' / 'Resting_State'
 
     # TODO filter subjects with NEW suffix and append `acq` instead.
-    self.subjects = [
-        x.stem for x in self.rest_dir.iterdir() if x.is_dir()
-    ]
 
-    # TODO rename VGP/NVGP => AVGP/NVGP
-    # self.subjects = [
-    #     s.replace('VGP', 'AVG') if s.startswith('VGP') else s
-    #     for s in self.subjects
-    # ]
+    # key: sub; value: folder_name (julia_sub)
+    self.subjects = {
+        # rename VGP/NVGP => AVGP/NVGP
+        s.stem.replace('VGP', 'AVG')
+        if s.stem.startswith('VGP') else s.stem: s.stem
+        for s in self.rest_dir.iterdir() if s.is_dir()
+    }
 
   def run(self):
     """Runs bidifier for all subjects."""
 
-    for sub in self.subjects:
-      self.create_folder_structure(sub)
-      self.copy_rest_t1w(sub)
-      self.prep_rest_bold(sub)
-      self.copy_rest_fmap(sub)
+    for sub, julia_sub in self.subjects.items():
+      self.init_folder_structure(sub)
+      self.copy_rest_t1w(sub, julia_sub)
+      # self.convert_rest_bold(sub, julia_sub)
+      self.copy_rest_fmap(sub, julia_sub)
+
+    self.create_task_sidecar()
+    self.create_dataset_description()
 
     logging.info(
         'BIDS-ified Julia2018 Resting State (bold, T1w, fmap)'
     )
 
-  def create_folder_structure(self, sub):
+  def init_folder_structure(self, sub):
     """Creates initial folder structure for a given subject."""
 
     ses_dir = self.out_dir / f'sub-{sub}' / f'ses-{self.session}'
@@ -62,46 +70,50 @@ class Julia2018RestBIDSifier():
     (ses_dir / 'func').mkdir(parents=True, exist_ok=True)
     (ses_dir / 'fmap').mkdir(parents=True, exist_ok=True)
 
-  def prep_rest_bold(self, sub):
+  def convert_rest_bold(self, sub, julia_sub):
     """convert BOLD DICOMs into nifti/sidecar, and move them into func/."""
 
-    func_dir = self.out_dir / f'sub-{sub}' / f'ses-{self.session}' / 'func'
+    bids_func = self.out_dir / f'sub-{sub}' / f'ses-{self.session}' / 'func'
 
     # TODO: use heudiconv to convery DCM files
 
-    bold_dir = self.rest_dir / sub / f'{sub}_bold'
-    # rest_bold_nii = bold_dir / f'{sub}_resting.nii.gz'
-    bids_rest_bold_filename = \
+    # precompiled Nifti: rest_bold_nii = bold_dir / f'{sub}_resting.nii.gz'
+
+    bold_dir = self.rest_dir / julia_sub / f'{julia_sub}_bold'
+
+    bids_func_rest_filename = \
         f'sub-{sub}_ses-{self.session}_task-{self.task_name}_bold'
 
-    dcm2bids(bold_dir, func_dir, bids_rest_bold_filename)
+    dcm2bids(bold_dir, bids_func, bids_func_rest_filename)
 
-    pass
-
-  def copy_rest_t1w(self, sub):
+  def copy_rest_t1w(self, sub, julia_sub):
     """Copies T1w nifti into BIDS anat/.
 
     Note: There is no DCM to be converted.
 
     """
 
-    anat_dir = self.out_dir / f'sub-{sub}' / f'ses-{self.session}' / 'anat'
+    t1w = \
+        self.rest_dir / julia_sub / 'T1' / \
+        f'{julia_sub}_brain_Ret.nii.gz'
 
-    t1w = self.rest_dir / sub / 'T1' / f'{sub}_brain_Ret.nii.gz'
-    bids = anat_dir / f'sub-{sub}_ses-{self.session}_T1w.nii.gz'
+    bids = \
+        self.out_dir / f'sub-{sub}' / f'ses-{self.session}' / 'anat' / \
+        f'sub-{sub}_ses-{self.session}_T1w.nii.gz'
 
     shutil.copyfile(t1w, bids)
 
-  def copy_rest_fmap(self, sub):
+  def copy_rest_fmap(self, sub, julia_sub):
     """copies fieldmap files into fmap/ and create a sidecar."""
 
     fmap_dir = self.out_dir / f'sub-{sub}' / f'ses-{self.session}' / 'fmap'
 
-    phase_filename = f'{sub}_Phase_rad_s.nii.gz'
-    mag_filename = f'{sub}_Mag_fieldmap_brain.nii.gz'
-
-    phase = self.rest_dir / sub / 'Phase_Image' / phase_filename
-    mag = self.rest_dir / sub / 'Magnitude_Image' / mag_filename
+    phase = \
+        self.rest_dir / julia_sub / 'Phase_Image' / \
+        f'{julia_sub}_Phase_rad_s.nii.gz'
+    mag = \
+        self.rest_dir / julia_sub / 'Magnitude_Image' / \
+        f'{julia_sub}_Mag_fieldmap_brain.nii.gz'
 
     phase_bids = fmap_dir / f'sub-{sub}_ses-{self.session}_phasediff.nii.gz'
     mag_bids = fmap_dir / f'sub-{sub}_ses-{self.session}_magnitude1.nii.gz'
@@ -120,6 +132,42 @@ class Julia2018RestBIDSifier():
     shutil.copyfile(phase, phase_bids)
     shutil.copyfile(mag, mag_bids)
 
+  def create_dataset_description(self):
+
+    out_file = self.out_dir / f'dataset_description.json'
+
+    dataset_description = {
+        'Name': 'Julia 2018 Dataset',
+        'BIDSVersion': '1.4.0',
+        'DatasetType': 'raw',
+        'Authors': ['Julia', 'Daphne']
+    }
+
+    with open(out_file, 'w') as f:
+      json.dump(dataset_description, f, indent=2)
+
+  def create_task_sidecar(self):
+
+    task_sidecar = {
+        'TaskName': self.task_name
+    }
+
+    out_file = self.out_dir / f'task-{self.task_name}_bold.json'
+
+    with open(out_file, 'w') as f:
+      json.dump(task_sidecar, f, indent=2)
+
+  def is_valid(self):
+    layout = BIDSLayout(self.out_dir, validate=True)
+    layout.get
+    validator = BIDSValidator()
+    conditions = []
+    for f in layout.files.keys():
+      # bids-validator requires relative path, so fisrt converting abs to rel.
+      path = f.replace(str(self.out_dir.absolute()), '')
+      conditions.append(validator.is_bids(path))
+    return all(conditions)
+
 
 # to test the Julia2018RestBIDSifier
 if __name__ == "__main__":
@@ -129,4 +177,6 @@ if __name__ == "__main__":
   in_dir = Path('data/julia2018_raw')
   out_dir = Path('data/julia2018_bids2')
 
-  Julia2018RestBIDSifier(in_dir, out_dir).run()
+  bidsifier = Julia2018RestBIDSifier(in_dir, out_dir, overwrite=True)
+  bidsifier.run()
+  print('BIDS validation result for the output dataset:', bidsifier.is_valid())
