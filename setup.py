@@ -1,7 +1,9 @@
 from distutils.core import setup
+from setuptools import find_packages
 
-setup(name='ACNets',
+setup(name='acnets',
       version='2020.10.1',
-      packages=['python'],
+      packages=find_packages('python'),
+      package_dir={'': 'python'},
       long_description=open('README.md').read(),
       )
