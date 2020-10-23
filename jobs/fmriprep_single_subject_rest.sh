@@ -30,6 +30,7 @@ date
 
 # temp work dir to keep intermediate stuff
 mkdir -p $SCRATCH/work
+mkdir -p $SCRATCH/work/singularity_images
 
 
 # extract dataset
@@ -38,14 +39,14 @@ tar xjf $PROJECT_DIR/backup/$DATASET.tar.bz2 -C $SCRATCH
 
 # create singularity image
 singularity build \
-    $PROJECT_DIR/singularity_images/fmriprep_latest.simg \
+    $SCRATCH/work/singularity_images/fmriprep_latest.simg \
     docker://poldracklab/fmriprep:latest
 
 
 # run fmriprep
 singularity run --cleanenv \
     --bind $SCRATCH/work \
-    $PROJECT_DIR/singularity_images/fmriprep_latest.simg \
+    $SCRATCH/work/singularity_images/fmriprep_latest.simg \
     $INPUT_DIR $OUTPUT_DIR participant \
     --mem 24GB --n-cpus 12 \
     --work-dir $SCRATCH/work \

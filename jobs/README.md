@@ -7,7 +7,9 @@ TODO: give an overview
 
 The following code submits a job to HPC and returns the `<job_id>`, which will be used in the next steps.
 
-```bashsi
+```bash
+si
+cd /work/project/acnets/jobs/
 sbatch <job>.sh
 ```
 
