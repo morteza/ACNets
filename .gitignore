@@ -148,3 +148,5 @@ cython_debug/
 
 # Test/QC/etc reports
 outputs/reports/
+
+nilearn_cache/
