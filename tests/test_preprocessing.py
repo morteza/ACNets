@@ -5,9 +5,9 @@ import sys
 
 from pathlib import Path
 
-
-from codes.preprocessing import Julia2018BehavioralPreprocessor
-from codes.preprocessing import Julia2018RestingPreprocessor
+# from .. import codes
+from python.preprocessing import Julia2018BehavioralPreprocessor
+from python.preprocessing import Julia2018RestingPreprocessor
 
 
 def test_bids_conversion():
