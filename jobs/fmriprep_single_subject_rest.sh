@@ -10,31 +10,26 @@
 #SBATCH --mail-user=morteza.ansarinia@uni.lu
 
 
-# parameters
+# job parameters
 SUBJ=AVGP01
 DATASET=julia2018_datalad_v2020.10.1
-
 JOB_NAME=fmriprep_rest_$SUBJ
 PROJECT_DIR=/work/projects/acnets
 INPUT_DIR=$SCRATCH/$DATASET
 OUTPUT_DIR=$PROJECT_DIR/derivatives/$JOB_NAME
 
 
-# enable access to the `module` cli
-. /etc/profile.d/lmod.sh
+# enable access to the `module` cli (HPC 2019: tools/Singularity/3.6.0)
 module purge
-
-# install singularity (HPC2019: tools/Singularity/3.6.0)
-module load tools/Singularity
+module load tools/Singularity/3.6.0
 
 
-echo "slurm job_id: " $SLURM_JOB_ID
-echo "slurm arrat task_id: " $SLURM_ARRAY_TASK_ID
+echo "Slurm job ID: " $SLURM_JOB_ID
 date
 
 
 # temp work dir to keep intermediate stuff
-mkdir $SCRATCH/work
+mkdir -p $SCRATCH/work
 
 
 # extract dataset
