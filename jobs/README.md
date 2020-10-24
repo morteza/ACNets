@@ -13,6 +13,12 @@ cd /work/project/acnets/jobs/
 sbatch <job>.sh
 ```
 
+to track logs:
+
+```
+tail -f ./slurm-<job_id>.out
+```
+
 to see expected start time of your submissions:
 
 ```bash
