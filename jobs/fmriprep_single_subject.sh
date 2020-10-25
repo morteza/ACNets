@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --job-name=fmriprep_rest_single_subject
-#SBATCH --output=/work/projects/acnets/logs/fmriprep_%j.out
+#SBATCH --job-name=fmriprep_single_subject
+#SBATCH --output=/work/projects/acnets/logs/slurm_%j.out
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=24gb
@@ -13,7 +13,7 @@
 
 # job parameters
 SUBJ=AVGP01
-DATASET=julia2018_datalad_v2020.10.1
+DATASET=julia2018_datalad_v2020.10.2
 JOB_NAME=fmriprep_rest_$SUBJ
 PROJECT_DIR=/work/projects/acnets
 INPUT_DIR=$SCRATCH/$DATASET/bids
@@ -27,7 +27,7 @@ module load tools/Singularity
 
 date
 echo "Slurm job ID: " $SLURM_JOB_ID
-echo "logs: `tail -f /work/projects/acnets/logs/fmriprep_$SLURM_JOB_ID`"
+echo "logs: 'tail -f /work/projects/acnets/logs/fmriprep_$SLURM_JOB_ID'"
 
 # prepare dataset and work dir
 if [ ! -d $SCRATCH/$DATASET ]; then
@@ -59,4 +59,5 @@ singularity run --cleanenv \
     --notrack \
     --skull-strip-t1w skip \
     --write-graph \
-    /inputs /outputs participant --participant-label $SUBJ
+    /inputs /outputs participant \
+    --participant-label $SUBJ

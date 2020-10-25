@@ -16,7 +16,7 @@ sbatch <job>.sh
 to track logs:
 
 ```
-tail -f ./slurm-<job_id>.out
+tail -f /work/projects/acnets/logs/slurm_<job_id>.out
 ```
 
 to see expected start time of your submissions:
@@ -48,16 +48,16 @@ squeue -j <job_id>
 
 Here is a list of all available jobs. See the linked scripts for more detail on what they are supposed to perform.
 
-### fmriprep single subject rest
+### `fmriprep_single_subject`
 
 Performs fmriprep preprocessing on a single subject's resting state images.
 
-> see `fmriprep_single_subject_rest.sh`
+> see `fmriprep_single_subject.sh`
 
 
-### mriqc T1w all
+### `mriqc_t1w`
 
 Performs quality checks on resting T1 images of all subjects.
 
-> see `mriqc_t1w_all.sh`
+> see `mriqc_t1w.sh`
 
