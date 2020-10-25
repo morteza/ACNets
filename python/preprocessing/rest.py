@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from bids.layout import BIDSLayout
 from bids.layout import BIDSValidator
 
-from .utils import dcm2bids
+from .utils import dcm2bids, init_ses, init_bids
 
 
 @dataclass
@@ -47,27 +47,18 @@ class Julia2018RestingPreprocessor():
 
   def run(self):
     """Runs bidifier for all subjects."""
+    init_bids(self.out_dir)
+    self.create_task_sidecar()
 
     for sub, julia_sub in self.subjects.items():
-      self.init_folder_structure(sub)
+      init_ses(self.out_dir, sub, self.session)
       self.copy_rest_t1w(sub, julia_sub)
       self.convert_rest_bold(sub, julia_sub)
       self.copy_rest_fmap(sub, julia_sub)
 
-    self.create_task_sidecar()
-    self.create_dataset_description()
-
     logging.info(
         'BIDS-ified Julia2018 Resting State (bold, T1w, fmap)'
     )
-
-  def init_folder_structure(self, sub):
-    """Creates initial folder structure for a given subject."""
-
-    ses_dir = self.out_dir / f'sub-{sub}' / f'ses-{self.session}'
-    (ses_dir / 'anat').mkdir(parents=True, exist_ok=True)
-    (ses_dir / 'func').mkdir(parents=True, exist_ok=True)
-    (ses_dir / 'fmap').mkdir(parents=True, exist_ok=True)
 
   def convert_rest_bold(self, sub, julia_sub):
     """convert BOLD DICOMs into nifti/sidecar, and move them into func/."""
@@ -119,31 +110,18 @@ class Julia2018RestingPreprocessor():
     sidecar_bids = fmap_dir / f'sub-{sub}_ses-{self.session}_phasediff.json'
 
     phase_sidecar = {
-        'EchoTime1': None,
+        'EchoTime1': 0.00519,  # see 'Resting_State_Protocol.pdf'
+        'EchoTime2': 0.00765,  # see 'Resting_State_Protocol.pdf'
         'IntendedFor':
-            (f'func/sub-{sub}_ses-'
-             f'{self.session}_task-'
-             f'{self.task_name}_bold.nii.gz')}
+            (f'ses-{self.session}/'
+             f'func/sub-{sub}_ses-{self.session}_task-{self.task_name}'
+             '_bold.nii.gz')}
 
     with open(sidecar_bids, 'w') as f:
       json.dump(phase_sidecar, f, indent=2)
 
     shutil.copyfile(phase, phase_bids)
     shutil.copyfile(mag, mag_bids)
-
-  def create_dataset_description(self):
-
-    out_file = self.out_dir / f'dataset_description.json'
-
-    dataset_description = {
-        'Name': 'Julia 2018 Dataset',
-        'BIDSVersion': '1.4.0',
-        'DatasetType': 'raw',
-        'Authors': ['Julia', 'Daphne']
-    }
-
-    with open(out_file, 'w') as f:
-      json.dump(dataset_description, f, indent=2)
 
   def create_task_sidecar(self):
 

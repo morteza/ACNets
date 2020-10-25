@@ -18,7 +18,10 @@ def test_bids_conversion():
 
   logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
-  preprocessor = Julia2018RestingPreprocessor(orig_dir, bids_dir)
+  preprocessor = Julia2018RestingPreprocessor(
+      orig_dir,
+      bids_dir,
+      overwrite=True)
   preprocessor.run()
 
   preprocessor = Julia2018BehavioralPreprocessor(raw_beh_dir, bids_dir)
