@@ -86,6 +86,8 @@ class Julia2018BehavioralPreprocessor():
     return pd.Series({
         'block_index': events.block_index.iloc[0],
         'trial_index': trial_index,
+        'onset': None,     # BIDS
+        'duration': None,  # BIDS
         'cue': cue,
         'stimulus': stimulus,
         'stimulus_timestamp': stimulus_ts,
@@ -103,6 +105,9 @@ class Julia2018BehavioralPreprocessor():
     for csv_file in self.in_dir.glob('**/*_events.csv'):
 
       sub, ses = re.search('([^_]+)_(.+)_events', csv_file.stem).groups()
+
+      # fix BIDS error code 58 (TASK_NAME_CONTAIN_ILLEGAL_CHARACTER)
+      ses = ses.replace('_', '').replace('-', '')
 
       group = re.search('([A-Z]+).*', sub).group(1)
 
@@ -170,6 +175,8 @@ class Julia2018BehavioralPreprocessor():
 
       # re-oreder columns to match UML diagram in the analysis plan
       TRIALS = TRIALS[[
+          'onset',
+          'duration',
           'subject_id',
           'group',
           'session',
@@ -198,7 +205,7 @@ class Julia2018BehavioralPreprocessor():
       sub = group + sub[(-5 if sub.endswith('NEW') else -2):]
 
       beh_dir = self.bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'beh'
-      out_file = beh_dir / f'sub-{sub}_ses-{ses}_task-{ses}.tsv'
+      out_file = beh_dir / f'sub-{sub}_ses-{ses}_task-{ses}_trials.tsv'
 
       beh_dir.mkdir(parents=True, exist_ok=True)
 
