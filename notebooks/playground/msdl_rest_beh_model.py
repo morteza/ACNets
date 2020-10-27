@@ -10,7 +10,6 @@ import nilearn
 from nilearn import plotting
 from nilearn.input_data import NiftiMapsMasker
 from nilearn.connectome import ConnectivityMeasure
-import sklearn
 
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
@@ -60,7 +59,7 @@ plt.show()
 
 # %% 3. calculate connectivity measures
 
-measures = ['correlation', 'partial correlation']  # , 'tangent']
+measures = ['correlation', 'partial correlation', 'tangent']
 
 conn_matrices = {}
 conn_measures = {}
@@ -86,22 +85,22 @@ plotting.plot_connectome(conn_matrix, msdl_coords,
 
 plt.show()
 
-# %% 4. model fake behavioral data using resting state connectivities
+# %% 4. model behavioral data using resting state connectivities
 
 cv = KFold(n_splits=3, shuffle=True)
 
-mses = []
 
-for train, test in cv.split(timeseries, beh_features):
-    conn_measure = ConnectivityMeasure(kind='correlation', vectorize=True)
-    connectomes = conn_measure.fit_transform(timeseries[train])
-    model = SVR(kernel='linear').fit(connectomes, beh_scores[train])
-    # make predictions for the left-out test subjects
-    y_true = beh_features[test]
-    y_pred = model.predict(conn_measure.transform(timeseries[test]))
-    # store the accuracy for this cross-validation fold
-    mse = mean_squared_error(y_true, y_pred)
-    mses.append(mse)
+for m in measures:
+    pooled_mse = []
+    for train, test in cv.split(timeseries, beh_features):
+        conn_measure = ConnectivityMeasure(kind=m, vectorize=True)
+        connectomes = conn_measure.fit_transform(timeseries[train])
+        model = SVR(kernel='linear').fit(connectomes, beh_features[train])
+        # make predictions for the left-out test subjects
+        y_true = beh_features[test]
+        y_pred = model.predict(conn_measure.transform(timeseries[test]))
+        # store the accuracy for this cross-validation fold
+        mse = mean_squared_error(y_true, y_pred)
+        pooled_mse.append(mse)
 
-
-print('CV-MSE (3 folds):', np.mean(mses))
+    print(f'{m} MSE (3 folds):', np.mean(pooled_mse))
