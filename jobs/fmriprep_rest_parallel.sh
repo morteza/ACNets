@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=fmriprep_rest_parallel
 #SBATCH --array=0-9
-#SBATCH --output=/work/projects/acnets/logs/fmriprep_rest.%A_%a.out
+#SBATCH --output=/work/projects/acnets/logs/fmriprep_rest_parallel.%A_%a.out
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=24gb
@@ -12,25 +12,28 @@
 #SBATCH --mail-user=morteza.ansarinia@uni.lu
 
 
-JOB_NAME=fmriprep_rest
-DATASET=julia2018_datalad_v2020.10.2
-RANDOM_SEED=42
-
-PROJECT_DIR=/work/projects/acnets/
-INPUT_DIR=${SCRATCH}${DATASET}/bids
-OUTPUT_DIR=${PROJECT_DIR}derivatives/$JOB_NAME
-TMP_WORK_DIR=${SCRATCH}fmriprep_work
-
-# Subjects with resting bold and t1w
+# Subjects with resting t1w/bold/fmap
 SUBJECTS_GROUPS=("AVGP01 AVGP02 AVGP03" "AVGP04 AVGP05 AVGP08" "AVGP10 AVGP12NEW AVGP13" "AVGP13NEW AVGP14 AVGP14NEW" "AVGP16NEW AVGP17NEW AVGP18 AVGP20")
 SUBJECTS_GROUPS+=("NVGP01 NVGP03 NVGP04" "NVGP06 NVGP07 NVGP08" "NVGP10 NVGP12 NVGP13" "NVGP14 NVGP15 NVGP16" "NVGP17 NVGP17NEW NVGP19 NVGP19NEW")
 
 
 # Choose subject based on slurm array id
 SUBJECTS=${SUBJECTS_GROUPS[$SLURM_ARRAY_TASK_ID]}
+GROUP_NAME=${SUBJECTS//[ ]/_}
+
+JOB_NAME=fmriprep_rest_parallel_${GROUP_NAME}
+DATASET=julia2018_datalad_v2020.10.2
+RANDOM_SEED=42
+
+PROJECT_DIR=/work/projects/acnets/
+INPUT_DIR=${SCRATCH}${DATASET}/bids
+OUTPUT_DIR=${PROJECT_DIR}derivatives/$JOB_NAME
+TMP_WORK_DIR=${SCRATCH}fmriprep_work_${GROUP_NAME}
+
 
 echo "Slurm job ID: " $SLURM_JOB_ID
 echo "Subjects: " $SUBJECTS
+echo "Group Name: " $GROUP_NAME
 
 # enable access to the `module` cli (HPC 2019: tools/Singularity/3.6.0)
 module purge
