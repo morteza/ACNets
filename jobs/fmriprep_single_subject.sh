@@ -14,11 +14,13 @@
 # job parameters
 SUBJ=AVGP01
 DATASET=julia2018_datalad_v2020.10.2
+RANDOM_SEED=42
 JOB_NAME=fmriprep_rest_$SUBJ
 PROJECT_DIR=/work/projects/acnets
 INPUT_DIR=$SCRATCH/$DATASET/bids
 OUTPUT_DIR=$PROJECT_DIR/derivatives/$JOB_NAME
 TMP_WORK_DIR=${SCRATCH}fmriprep_work
+
 
 # enable access to the `module` cli (HPC 2019: tools/Singularity/3.6.0)
 module purge
@@ -27,22 +29,23 @@ module load tools/Singularity
 
 date
 echo "Slurm job ID: " $SLURM_JOB_ID
-echo "logs: 'tail -f /work/projects/acnets/logs/fmriprep_$SLURM_JOB_ID'"
+
 
 # prepare dataset and work dir
 if [ ! -d $SCRATCH/$DATASET ]; then
-    tar xjf $PROJECT_DIR/backup/$DATASET.tar.bz2 -C $SCRATCH
+    tar xjf ${PROJECT_DIR}backup/$DATASET.tar.bz2 -C $SCRATCH
 fi
 
 
 # create temp working dir
 mkdir -p $TMP_WORK_DIR
+mkdir -p $OUTPUT_DIR
 
 
-#  to avoid unexpected results, only create fmriprep SIF if it does not already exist
-if [ ! -f $SCRATCH/fmriprep_latest.simg ]; then
+# to avoid unexpected results, only create fmriprep SIF if it does not already exist
+if [ ! -f ${SCRATCH}fmriprep_latest.simg ]; then
     singularity build \
-        $SCRATCH/fmriprep_latest.simg \
+        ${SCRATCH}fmriprep_latest.simg \
         docker://poldracklab/fmriprep:latest
 fi
 
@@ -59,5 +62,6 @@ singularity run --cleanenv \
     --notrack \
     --skull-strip-t1w skip \
     --write-graph \
+    --random-seed $RANDOM_SEED \
     /inputs /outputs participant \
     --participant-label $SUBJ
