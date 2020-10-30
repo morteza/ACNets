@@ -12,3 +12,5 @@ flake8-todo
 # dicom2nifti     # use dcm2niix instead for sidecars
 fmriprep-docker
 pybids
+networkx
+bokeh
