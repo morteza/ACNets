@@ -6,6 +6,7 @@ dependencies:
   - pip
   - dcm2niix
   - nipype
+  - graphviz
   - pip:
     - numpy
     - scipy
@@ -22,3 +23,5 @@ dependencies:
     - pybids
     - networkx
     - bokeh
+    - holoviews
+    - nilearn
