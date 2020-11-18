@@ -1,7 +1,6 @@
-numpy
 scipy
 pandas
-matplotlib
+seaborn
 pytest
 pytest-plt
 tox
