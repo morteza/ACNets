@@ -53,12 +53,12 @@ def init_bids(bids_dir: Path, dataset_name='Julia 2018 Dataset'):
   bids_dir.mkdir(parents=True, exist_ok=True)
 
   # README
-  with open(bids_dir / f'README', 'w') as f:
+  with open(bids_dir / 'README', 'w') as f:
     f.write(f'# {dataset_name}')
     f.write('\n')
 
   # bidsignore
-  with open(bids_dir / f'.bidsignore', 'w') as f:
+  with open(bids_dir / '.bidsignore', 'w') as f:
     f.writelines([
         'sub-*/ses-A*/beh/*_trials.tsv',
         'sub-*/ses-Block*/beh/*_trials.tsv'
@@ -72,7 +72,7 @@ def init_bids(bids_dir: Path, dataset_name='Julia 2018 Dataset'):
       'Authors': ['Julia', 'Daphne']
   }
 
-  with open(bids_dir / f'dataset_description.json', 'w') as f:
+  with open(bids_dir / 'dataset_description.json', 'w') as f:
     json.dump(dataset_description, f, indent=2)
 
 

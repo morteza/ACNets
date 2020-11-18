@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from bids.layout import BIDSLayout
 from bids.layout import BIDSValidator
 
-from .utils import dcm2bids, init_ses, init_bids
+from . import utils
 
 
 @dataclass
@@ -40,27 +40,26 @@ class Julia2018RestingPreprocessor():
     # key: sub; value: folder_name (julia_sub)
     self.subjects = {
         # rename VGP/NVGP => AVGP/NVGP
-        s.stem.replace('VGP', 'AVGP')
-        if s.stem.startswith('VGP') else s.stem: s.stem
+        s.stem.replace('VGP', 'AVGP') if s.stem.startswith('VGP') else s.stem: s.stem
         for s in self.rest_dir.iterdir() if s.is_dir()
     }
 
   def run(self):
     """Runs bidifier for all subjects."""
-    init_bids(self.out_dir)
+    utils.init_bids(self.out_dir)
     self.create_task_sidecar()
 
     for sub, julia_sub in self.subjects.items():
-      init_ses(self.out_dir, sub, self.session)
-      self.copy_rest_t1w(sub, julia_sub)
-      self.convert_rest_bold(sub, julia_sub)
-      self.copy_rest_fmap(sub, julia_sub)
+      utils.init_ses(self.out_dir, sub, self.session)
+      self.process_anat(sub, julia_sub)
+      self.process_bold(sub, julia_sub)
+      self.process_fmap(sub, julia_sub)
 
     logging.info(
         'BIDS-ified Julia2018 Resting State (bold, T1w, fmap)'
     )
 
-  def convert_rest_bold(self, sub, julia_sub):
+  def process_bold(self, sub, julia_sub):
     """convert BOLD DICOMs into nifti/sidecar, and move them into func/."""
 
     bids_func = self.out_dir / f'sub-{sub}' / f'ses-{self.session}' / 'func'
@@ -74,9 +73,9 @@ class Julia2018RestingPreprocessor():
     bids_func_rest_filename = \
         f'sub-{sub}_ses-{self.session}_task-{self.task_name}_bold'
 
-    dcm2bids(bold_dir, bids_func, bids_func_rest_filename)
+    utils.dcm2bids(bold_dir, bids_func, bids_func_rest_filename)
 
-  def copy_rest_t1w(self, sub, julia_sub):
+  def process_anat(self, sub, julia_sub):
     """Copies T1w nifti into BIDS anat/.
 
     Note: There is no DCM to be converted.
@@ -93,7 +92,7 @@ class Julia2018RestingPreprocessor():
 
     shutil.copyfile(t1w, bids)
 
-  def copy_rest_fmap(self, sub, julia_sub):
+  def process_fmap(self, sub, julia_sub):
     """copies fieldmap files into fmap/ and create a sidecar."""
 
     fmap_dir = self.out_dir / f'sub-{sub}' / f'ses-{self.session}' / 'fmap'
