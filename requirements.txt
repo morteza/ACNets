@@ -9,11 +9,12 @@ pytest-plt
 flake8
 pep8-naming
 flake8-todo
-nipype          # use conda
-# dicom2nifti     # use dcm2niix instead for sidecars
+nipype
 fmriprep-docker
 pybids
 networkx
 bokeh
 visbrain
-dcm2niix
+# dicom2nifti     # use dcm2niix instead for sidecars
+# dcm2niix        # use conda
+nilearn

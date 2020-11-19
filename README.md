@@ -30,6 +30,7 @@ You need to take care of the following things before developing ACNets:
 Overall, you can install all the dependencies like this:
 
 ```bash
+pip install -U -r requirements.txt
 pip3 install -e .
 brew install dcm2niix  # using Homebrew on macOS
 # conda install -c conda-forge dcm2niix  # using conda
