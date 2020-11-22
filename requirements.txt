@@ -18,3 +18,4 @@ visbrain
 # dicom2nifti     # use dcm2niix instead for sidecars
 # dcm2niix        # use conda
 nilearn
+heudiconv=0.8.0
