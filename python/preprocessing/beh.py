@@ -59,38 +59,45 @@ class Julia2018BehavioralPreprocessor():
     elif len(stimulus_events) > 1:
       print('trial', trial_index, ': multiple stimuli')
 
-    #  TODO quality checks to verify number of missing arms
-
+    # cue
     cue = cue_events.type.apply(lambda s: s.split(' ')[1]).values[0]
     cue_onset = cue_events.realTime.iloc[0]
+    cue_onset_in_block = cue_events.blockTime.iloc[0]
     cue_duration = 0.5  # 500ms (foecker2018)
 
+    # stimulus
     stimulus = None
     stimulus_onset = None
+    stimulus_onset_in_block = None
     stimulus_duration = .1  # 100ms (foecker2018)
     if len(stimulus_events) > 0:
-      stimulus = \
-          stimulus_events.type.apply(lambda s: s.split(' ')[1]).values[0]
+      stimulus = stimulus_events.type.apply(lambda s: s.split(' ')[1]).values[0]
       stimulus_onset = stimulus_events.realTime.iloc[0]
+      stimulus_onset_in_block = stimulus_events.blockTime.iloc[0]
 
+    # response
     response = None
-    response_ts = None
+    response_onset = None
+    response_onset_in_block = None
     if len(response_events) > 0:
-      response = \
-          response_events.type.apply(lambda s: s.split(' ')[1]).values[0]
-      response_ts = response_events.realTime.iloc[0]
+      response = response_events.type.apply(lambda s: s.split(' ')[1]).values[0]
+      response_onset = response_events.realTime.iloc[0]
+      response_onset_in_block = response_events.blockTime.iloc[0]
 
     return pd.Series({
         'block_index': events.block_index.iloc[0],
         'trial_index': trial_index,
         'cue': cue,
         'cue_onset': cue_onset,
+        'cue_onset_in_block': cue_onset_in_block,
         'cue_duration': cue_duration,
         'stimulus': stimulus,
         'stimulus_onset': stimulus_onset,
+        'stimulus_onset_in_block': stimulus_onset_in_block,
         'stimulus_duration': stimulus_duration,
         'response': response,
-        'response_timestamp': response_ts
+        'response_onset': response_onset,
+        'response_onset_in_block': response_onset_in_block
     })
 
   def run(self):
@@ -102,7 +109,10 @@ class Julia2018BehavioralPreprocessor():
       sub, ses = re.search('([^_]+)_(.+)_events', csv_file.stem).groups()
 
       # fix BIDS error code 58 (TASK_NAME_CONTAIN_ILLEGAL_CHARACTER)
-      ses = ses.replace('_', '').replace('-', '')
+      ses = ses.replace('_', '').replace('-', '').replace('A1', '1').replace('A2', '2')
+
+      if ses not in ['1', '2']:
+        print(f'sub-{sub}: unknown session name ({ses})')
 
       group = re.search('([A-Z]+).*', sub).group(1)
 
@@ -159,9 +169,8 @@ class Julia2018BehavioralPreprocessor():
           EVENTS.groupby(['trial_index'], as_index=False). \
           apply(self.events_to_trial)
 
-      TRIALS['response_time'] = TRIALS['response_timestamp'] - TRIALS['stimulus_onset']
-      TRIALS['correct'] = \
-          (TRIALS.stimulus == TRIALS.response) & (TRIALS.response_time > 0)
+      TRIALS['response_time'] = TRIALS['response_onset'] - TRIALS['stimulus_onset']
+      TRIALS['correct'] = (TRIALS['stimulus'] == TRIALS['response']) & (TRIALS['response_time'] > 0)
 
       TRIALS = TRIALS.merge(TRIAL_PARAMS, on='trial_index')
 
@@ -174,16 +183,19 @@ class Julia2018BehavioralPreprocessor():
           'trial_index',
           'trial_type',
           'cue',
-          'cue_duration',
           'cue_onset',
+          'cue_onset_in_block',
+          'cue_duration',
           'SOA',
           'stimulus',
           'stimulus_onset',
+          'stimulus_onset_in_block',
           'stimulus_duration',
           'stimulus_contrast',
           'response',
           'response_time',
-          'response_timestamp',
+          'response_onset',
+          'response_onset_in_block',
           'correct',
           'ITI',
           'missing_arm_shown'
@@ -194,7 +206,7 @@ class Julia2018BehavioralPreprocessor():
       sub = group + sub[(-5 if sub.endswith('NEW') else -2):]
 
       beh_dir = self.bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'beh'
-      out_file = beh_dir / f'sub-{sub}_ses-{ses}_task-{ses}_trials.tsv'
+      out_file = beh_dir / f'sub-{sub}_ses-{ses}_task-A{ses}_trials.tsv'
 
       beh_dir.mkdir(parents=True, exist_ok=True)
 
