@@ -59,22 +59,19 @@ class Julia2018BehavioralPreprocessor():
     elif len(stimulus_events) > 1:
       print('trial', trial_index, ': multiple stimuli')
 
-    # TODO quality checks to verify number of missing arms
+    #  TODO quality checks to verify number of missing arms
 
     cue = cue_events.type.apply(lambda s: s.split(' ')[1]).values[0]
-    cue_ts = cue_events.realTime.iloc[0]
-    cue_duration = None
-    if len(stimulus_events) > 0:
-      cue_duration = \
-          stimulus_events.realTime.iloc[0] - cue_events.realTime.iloc[0]
+    cue_onset = cue_events.realTime.iloc[0]
+    cue_duration = 0.5  # 500ms (foecker2018)
 
     stimulus = None
-    stimulus_ts = None
-    stimulus_duration = None  # TODO calc stimulus_duration
+    stimulus_onset = None
+    stimulus_duration = .1  # 100ms (foecker2018)
     if len(stimulus_events) > 0:
       stimulus = \
           stimulus_events.type.apply(lambda s: s.split(' ')[1]).values[0]
-      stimulus_ts = stimulus_events.realTime.iloc[0]
+      stimulus_onset = stimulus_events.realTime.iloc[0]
 
     response = None
     response_ts = None
@@ -86,15 +83,13 @@ class Julia2018BehavioralPreprocessor():
     return pd.Series({
         'block_index': events.block_index.iloc[0],
         'trial_index': trial_index,
-        'onset': None,     # BIDS
-        'duration': None,  # BIDS
         'cue': cue,
+        'cue_onset': cue_onset,
+        'cue_duration': cue_duration,
         'stimulus': stimulus,
-        'stimulus_timestamp': stimulus_ts,
+        'stimulus_onset': stimulus_onset,
         'stimulus_duration': stimulus_duration,
         'response': response,
-        'cue_timestamp': cue_ts,
-        'cue_duration': cue_duration,
         'response_timestamp': response_ts
     })
 
@@ -118,7 +113,7 @@ class Julia2018BehavioralPreprocessor():
       TRIAL_PARAMS['group'] = group
       TRIAL_PARAMS['session'] = ses
       TRIAL_PARAMS['trial_index'] = TRIAL_PARAMS.index + 1
-      TRIAL_PARAMS['has_missing_arms'] = TRIAL_PARAMS.missingArms > 0
+      TRIAL_PARAMS['missing_arm_shown'] = TRIAL_PARAMS.missingArms > 0
       TRIAL_PARAMS.replace({
           'type': {
               'standardvalid': 'standard_valid',
@@ -138,8 +133,7 @@ class Julia2018BehavioralPreprocessor():
           'trialTime': 'trial_duration',
           'ITI': 'ITI',
           'SOA': 'SOA',
-          'deviant': 'distractor',
-          'missingArms': 'missing_arms_n'
+          'deviant': 'distractor'
       }, axis=1, inplace=True)
 
       # TODO extract stimulus_contrast
@@ -165,18 +159,14 @@ class Julia2018BehavioralPreprocessor():
           EVENTS.groupby(['trial_index'], as_index=False). \
           apply(self.events_to_trial)
 
-      TRIALS['rt'] = TRIALS.response_timestamp - TRIALS.stimulus_timestamp
+      TRIALS['response_time'] = TRIALS['response_timestamp'] - TRIALS['stimulus_onset']
       TRIALS['correct'] = \
-          (TRIALS.stimulus == TRIALS.response) & (TRIALS.rt > 0)
-      TRIALS['preparation_duration'] = \
-          TRIALS.stimulus_timestamp - TRIALS.cue_timestamp
+          (TRIALS.stimulus == TRIALS.response) & (TRIALS.response_time > 0)
 
       TRIALS = TRIALS.merge(TRIAL_PARAMS, on='trial_index')
 
       # re-oreder columns to match UML diagram in the analysis plan
       TRIALS = TRIALS[[
-          'onset',
-          'duration',
           'subject_id',
           'group',
           'session',
@@ -184,20 +174,19 @@ class Julia2018BehavioralPreprocessor():
           'trial_index',
           'trial_type',
           'cue',
-          'stimulus',
-          'stimulus_contrast',
-          'missing_arms_n',
-          'response',
-          'rt',
-          'correct',
-          'SOA',
-          'ITI',
           'cue_duration',
-          'preparation_duration',
+          'cue_onset',
+          'SOA',
+          'stimulus',
+          'stimulus_onset',
           'stimulus_duration',
-          'cue_timestamp',
-          'stimulus_timestamp',
-          'response_timestamp'
+          'stimulus_contrast',
+          'response',
+          'response_time',
+          'response_timestamp',
+          'correct',
+          'ITI',
+          'missing_arm_shown'
       ]]
 
       # VGP -> AVGP
