@@ -51,11 +51,12 @@ def create_tfmri_events(sub, ses, bids_dir=bids_dir):
     for r in events['run'].unique():
         print(f'storing run{r} events...')
         run_events = events.query('run == @r').drop(columns='run')
+        run_events = run_events[['onset', 'duration', 'event_type']]
         run_events.to_csv(
             out_dir / f'sub-{sub}_ses-{ses}_task-attention_run-{r:02d}_events.tsv',
             index=False, float_format='%.3f')
 
-    # cols = onset, duration, trial_type, stim_file, trial, block
+    # TODO cols = onset, duration, trial_type, event_type, stim_file, trial, block
 
 
 def fix_fmap_intended_for(sub, ses, bids_dir=bids_dir):
