@@ -4,8 +4,10 @@ import pandas as pd
 
 from pathlib import Path
 
+bids_dir = Path('data') / 'julia2018' / 'bids'
 
-def create_tfmri_events(sub, ses, bids_dir):
+
+def create_tfmri_events(sub, ses, bids_dir=bids_dir):
 
     logging.info(f'processing events for sub-{sub}_ses-{ses}...')
 
@@ -43,11 +45,11 @@ def create_tfmri_events(sub, ses, bids_dir):
             out_dir / f'sub-{sub}_ses-{ses}_task-attention_run-{r}_events.tsv',
             index=False, float_format='%.3f')
 
+    # cols = onset, duration, trial_type, stim_file, trial, block
     logging.info('done!')
 
 
 create_tfmri_events(sub='NVGP01',
-                    ses='2',
-                    bids_dir=Path('data') / 'julia2018' / 'bids')
+                    ses='2')
 
 print('done!')
