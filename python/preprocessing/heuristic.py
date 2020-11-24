@@ -19,20 +19,20 @@ def infotodict(seqinfo):
     session: scan index for longitudinal acq (1, 2)
     """
 
-    localizer = create_key(
-        '{bids_subject_session_dir}/func/{bids_subject_session_prefix}_task-localizer_run-{item:02d}_bold')
+    # localizer = create_key('{bids_subject_session_dir}/func/{bids_subject_session_prefix}_task-localizer_bold')
     t1w = create_key('{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_t1w')
     fmap_mag = create_key('{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_magnitude')
     fmap_phase = create_key('{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_phasediff')
     func = create_key(
         '{bids_subject_session_dir}/func/{bids_subject_session_prefix}_task-attention_run-{item:02d}_bold')
 
-    info = {localizer: [],
-            t1w: [],
-            fmap_phase: [],
-            fmap_mag: [],
-            func: []
-            }
+    info = {
+        # localizer: [],
+        t1w: [],
+        fmap_phase: [],
+        fmap_mag: [],
+        func: []
+    }
 
     # last_run = len(seqinfo)
 
@@ -61,8 +61,8 @@ def infotodict(seqinfo):
         * series_description
         * image_type
         """
-        if 'localizer' in s.protocol_name:
-            info[localizer].append(s.series_id)
+        # if 'localizer' in s.protocol_name:
+        #     info[localizer].append(s.series_id)
         if 'MPRAGE T1' in s.protocol_name:
             info[t1w].append(s.series_id)
         if ('field_mapping' in s.protocol_name) and ('M' in s.image_type) and (s.dim3 == 72):
