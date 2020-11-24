@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --job-name=fmriprep_single_subject
-#SBATCH --output=/work/projects/acnets/logs/slurm_%j.out
+#SBATCH --job-name=fmriprep
+#SBATCH --output=/work/projects/acnets/logs/%x_%j.out
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=32gb
@@ -18,10 +18,11 @@ RANDOM_SEED=42
 PROJECT_DIR=/work/projects/acnets
 INPUT_DIR=$SCRATCH/$DATASET/bids
 OUTPUT_DIR=$PROJECT_DIR/derivatives/fmriprep_sub-$SUBJECT
-TMP_WORK_DIR=${SCRATCH}fmriprep_work
+TMP_WORK_DIR=${SCRATCH}/fmriprep_work
 
 
-# enable access to the `module` cli (HPC 2019: tools/Singularity/3.6.0)
+# enable access to the `module` and `singularity`.
+[ -f /etc/profile ] && source /etc/profile
 module purge
 module load tools/Singularity
 
@@ -32,7 +33,7 @@ echo "Slurm job ID: " $SLURM_JOB_ID
 
 # prepare dataset and work dir
 if [ ! -d $SCRATCH/$DATASET ]; then
-    tar xjf ${PROJECT_DIR}backup/$DATASET.tar.bz2 -C $SCRATCH
+    tar xjf ${PROJECT_DIR}/backup/$DATASET.tar.bz2 -C $SCRATCH
 fi
 
 
@@ -42,9 +43,9 @@ mkdir -p $OUTPUT_DIR
 
 
 # to avoid unexpected results, only create fmriprep SIF if it does not already exist
-if [ ! -f ${SCRATCH}fmriprep_latest.simg ]; then
+if [ ! -f ${SCRATCH}/fmriprep_latest.simg ]; then
     singularity build \
-        ${SCRATCH}fmriprep_latest.simg \
+        ${SCRATCH}/fmriprep_latest.simg \
         docker://poldracklab/fmriprep:latest
 fi
 
