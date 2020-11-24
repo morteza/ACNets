@@ -3,22 +3,21 @@
 #SBATCH --job-name=fmriprep_single_subject
 #SBATCH --output=/work/projects/acnets/logs/slurm_%j.out
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=12
-#SBATCH --mem=24gb
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=32gb
 #SBATCH --partition=bigmem
-#SBATCH --time=1-00:00:00
+#SBATCH --time=2-00:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=morteza.ansarinia@uni.lu
 
 
 # job parameters
-SUBJ=AVGP01
-DATASET=julia2018_datalad_v2020.10.2
+SUBJECT=NVGP01
+DATASET=julia2018_datalad_v2020.11.4
 RANDOM_SEED=42
-JOB_NAME=fmriprep_rest_$SUBJ
 PROJECT_DIR=/work/projects/acnets
 INPUT_DIR=$SCRATCH/$DATASET/bids
-OUTPUT_DIR=$PROJECT_DIR/derivatives/$JOB_NAME
+OUTPUT_DIR=$PROJECT_DIR/derivatives/fmriprep_sub-$SUBJECT
 TMP_WORK_DIR=${SCRATCH}fmriprep_work
 
 
@@ -56,12 +55,11 @@ singularity run --cleanenv \
     -B $OUTPUT_DIR:/outputs \
     -B $SCRATCH \
     $SCRATCH/fmriprep_latest.simg \
-    --mem 24GB --n-cpus 12 \
+    --mem 32GB --n-cpus 16 \
     --fs-license-file $HOME/freesurfer_license.txt \
     --work-dir $TMP_WORK_DIR \
     --notrack \
-    --skull-strip-t1w skip \
     --write-graph \
     --random-seed $RANDOM_SEED \
     /inputs /outputs participant \
-    --participant-label $SUBJ
+    --participant-label $SUBJECT
