@@ -42,7 +42,7 @@ def create_tfmri_events(sub, ses, bids_dir=bids_dir):
         logging.info(f'saving run{r} events...')
         run_events = events.query('run == @r').drop(columns='run')
         run_events.to_csv(
-            out_dir / f'sub-{sub}_ses-{ses}_task-attention_run-{r}_events.tsv',
+            out_dir / f'sub-{sub}_ses-{ses}_task-attention_run-{r:02d}_events.tsv',
             index=False, float_format='%.3f')
 
     # cols = onset, duration, trial_type, stim_file, trial, block
