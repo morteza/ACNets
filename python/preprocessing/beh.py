@@ -48,6 +48,7 @@ class Julia2018BehavioralPreprocessor():
     # if len(response_events) == 0:
     #   print('trial', trial_index, ': no response')
     if len(response_events) > 1:
+      # TODO change this to mark only the first response AFTER the STIMULI is shown
       response_events = response_events.iloc[[0]]
       print('trial', trial_index, ': multiple responses')
 
@@ -109,7 +110,7 @@ class Julia2018BehavioralPreprocessor():
       sub, ses = re.search('([^_]+)_(.+)_events', csv_file.stem).groups()
 
       # fix BIDS error code 58 (TASK_NAME_CONTAIN_ILLEGAL_CHARACTER)
-      ses = ses.replace('_', '').replace('-', '').replace('A1', '1').replace('A2', '2')
+      ses = ses.replace('_', '').replace('-', '').replace('A1', '1').replace('A2', '2').lower()
 
       if ses not in ['1', '2']:
         print(f'sub-{sub}: unknown session name ({ses})')
@@ -165,9 +166,7 @@ class Julia2018BehavioralPreprocessor():
                                           .cumsum()
                                           .ffill())
 
-      TRIALS = \
-          EVENTS.groupby(['trial_index'], as_index=False). \
-          apply(self.events_to_trial)
+      TRIALS = EVENTS.groupby(['trial_index'], as_index=False).apply(self.events_to_trial)
 
       TRIALS['response_time'] = TRIALS['response_onset'] - TRIALS['stimulus_onset']
       TRIALS['correct'] = (TRIALS['stimulus'] == TRIALS['response']) & (TRIALS['response_time'] > 0)
@@ -210,7 +209,7 @@ class Julia2018BehavioralPreprocessor():
 
       beh_dir.mkdir(parents=True, exist_ok=True)
 
-      TRIALS.to_csv(out_file, sep='\t')  # .tsv
+      TRIALS.to_csv(out_file, sep='\t', na_rep='n/a', index=False)  # .tsv
 
   def is_valid(self):
     layout = BIDSLayout(self.bids_dir, validate=True)
