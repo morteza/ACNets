@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=fmriprep_rest_parallel
+#SBATCH --job-name=fmriprep
 #SBATCH --array=0-9
-#SBATCH --output=/work/projects/acnets/logs/fmriprep_rest_parallel.%A_%a.out
+#SBATCH --output=/work/projects/acnets/logs/%x_%A_%a.out
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=24gb
@@ -35,7 +35,8 @@ echo "Slurm job ID: " $SLURM_JOB_ID
 echo "Subjects: " $SUBJECTS
 echo "Group Name: " $GROUP_NAME
 
-# enable access to the `module` cli (HPC 2019: tools/Singularity/3.6.0)
+# enable access to the `module` and `singularity`.
+[ -f /etc/profile ] && source /etc/profile
 module purge
 module load tools/Singularity
 

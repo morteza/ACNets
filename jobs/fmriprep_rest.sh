@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#SBATCH --job-name=fmriprep_rest
-#SBATCH --output=/work/projects/acnets/logs/slurm_%j.out
+#SBATCH --job-name=fmriprep
+#SBATCH --output=/work/projects/acnets/logs/%x_%j.out
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=32gb
@@ -27,7 +27,8 @@ SUBJECTS_WITH_REST_BOLD="AVGP01 AVGP02 AVGP03 AVGP04 AVGP05 AVGP08 AVGP10 AVGP12
 SUBJECTS_WITH_REST_BOLD+=" NVGP01 NVGP03 NVGP04 NVGP06 NVGP07 NVGP08 NVGP10 NVGP12 NVGP13 NVGP14 NVGP15 NVGP16 NVGP17 NVGP17NEW NVGP19 NVGP19NEW"
 
 
-# enable access to the `module` cli (HPC 2019: tools/Singularity/3.6.0)
+# enable access to the `module` and `singularity`.
+[ -f /etc/profile ] && source /etc/profile
 module purge
 module load tools/Singularity
 
