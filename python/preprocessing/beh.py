@@ -206,7 +206,7 @@ class Julia2018BehavioralPreprocessor():
       sub = group + sub[(-5 if sub.endswith('NEW') else -2):]
 
       beh_dir = self.bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'beh'
-      out_file = beh_dir / f'sub-{sub}_ses-{ses}_task-A{ses}_trials.tsv'
+      out_file = beh_dir / f'sub-{sub}_ses-{ses}_task-attention_trials.tsv'
 
       beh_dir.mkdir(parents=True, exist_ok=True)
 
