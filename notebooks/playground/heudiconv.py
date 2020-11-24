@@ -22,7 +22,7 @@ def fix_fmap_intended_for(sub, ses, bids_dir=bids_dir):
 
   fmap_sidecars = fmap_path.glob('*.json')
   intended_for = [
-      str(ni.relative_to(bids_dir / f'sub-{sub}' / f'ses-{ses}'))
+      str(ni.relative_to(bids_dir / f'sub-{sub}'))
       for ni in func_path.glob('*.nii.gz')]
 
   for file in fmap_sidecars:
