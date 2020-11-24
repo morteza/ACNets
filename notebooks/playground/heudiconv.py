@@ -54,7 +54,7 @@ def create_tfmri_events(sub, ses, bids_dir=bids_dir):
         run_events = run_events[['onset', 'duration', 'event_type']]
         run_events.to_csv(
             out_dir / f'sub-{sub}_ses-{ses}_task-attention_run-{r:02d}_events.tsv',
-            index=False, float_format='%.3f')
+            sep='\t', na_rep='n/a', index=False, float_format='%.3f')
 
     # TODO cols = onset, duration, trial_type, event_type, stim_file, trial, block
 
@@ -92,10 +92,10 @@ for ses in sess:
            ' -c dcm2niix')
     print(cmd)
 
-    res = subprocess.run(cmd.split(' '), stderr=subprocess.PIPE, text=True, cwd=os.getcwd())
+    # res = subprocess.run(cmd.split(' '), stderr=subprocess.PIPE, text=True, cwd=os.getcwd())
 
-    print(res.stderr)
+    # print(res.stderr)
     create_tfmri_events(sub, ses)
-    fix_fmap_intended_for(sub, ses)
+    # fix_fmap_intended_for(sub, ses)
 
 print('FINISHED!')
