@@ -21,8 +21,8 @@ def infotodict(seqinfo):
 
     # localizer = create_key('{bids_subject_session_dir}/func/{bids_subject_session_prefix}_task-localizer_bold')
     t1w = create_key('{bids_subject_session_dir}/anat/{bids_subject_session_prefix}_t1w')
-    fmap_mag = create_key('{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_magnitude')
-    fmap_phase = create_key('{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_phasediff')
+    fmap_mag = create_key('{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_run-{item:02d}_magnitude')
+    fmap_phase = create_key('{bids_subject_session_dir}/fmap/{bids_subject_session_prefix}_run-{item:02d}_phasediff')
     func = create_key(
         '{bids_subject_session_dir}/func/{bids_subject_session_prefix}_task-attention_run-{item:02d}_bold')
 
