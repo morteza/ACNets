@@ -21,7 +21,7 @@ def create_tfmri_events(sub, ses, bids_dir=bids_dir):
 
     print(f'processing events for sub-{sub}_ses-{ses}...')
 
-    beh_file = list((bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'beh').glob('*_trials.tsv'))[0]
+    beh_file = list((bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'beh').glob('*_beh.tsv'))[0]
 
     beh_df = pd.read_csv(beh_file, sep='\t')
 
