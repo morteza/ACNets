@@ -14,7 +14,7 @@ DataLad offers several features, but they are beyond the scope of this document.
 
 5. To send your saved changes to the server, use `datalad push --to origin`.
 
-6. And to export the whole dataset to an archive file, use `datalad export-archive -t tar -c bz2 ../dataset_vXXXX.YY.tar.bz2`. Depending on the size of dataset it takes a while. Upon finishing the export, you can then backup or share the exported archive.
+6. And to export the whole dataset to an archive file, use `datalad export-archive -t tar -c bz2 ../dataset_vXXXX.YY.tar.bz2 --missing-content ignore`. Depending on the size of the dataset it takes a while to create the archive. Upon finishing the export, you can then backup or share the exported archive.
 
 
 ## Access HPC datasets (using DataLad)
@@ -28,9 +28,9 @@ datalad clone ria+ssh://iris-cluster:/work/projects/acnets/backup/datalad_riasto
 datalad clone ria+ssh://iris-cluster:/work/projects/acnets/backup/datalad_riastore#~dosenbach2007
 ```
 
-This will create folder structures and links for the two datasets respectively in `data/julia2018/` and `data/dosenbach2007/` folders, but leaves the content of some files on the server.
+This will create folder structures and links for the two datasets, respectively in `data/julia2018/` and `data/dosenbach2007/` folders, but leave the content of some files on the remote server.
 
-Most small files such as `.tsv` or `.md` texts will be available offline right away, but larger files like Nifti images are just inaccessible links. You need to download them explicitly with DataLad.
+Most small files such as `.tsv` or `.md` texts will be available locally right away, but larger files like Nifti images remain inaccessible until you explicitly download them with DataLad.
 
 The following code, for example, shows how to download all the scans for a given subject (sub-NVGP01):
 
