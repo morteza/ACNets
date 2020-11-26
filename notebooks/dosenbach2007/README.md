@@ -13,7 +13,7 @@ In brief, I use graph analysis to identify control networks using resting-state 
 
 A systematic review of the cognitive control literature revealed 39 control-related ROIs [@dosenbach2007]. By extracting resting time-series of those ROIs and correlating them, we can produce a seed-based connectivity matrix of size $(39 \times 39)$ for each subject.
 
-Next, I will binarize the connectivity matrices with respect to an arbitrary threshold `r`. The remaining edges, i.e., connectivities stronger than $r$, are expected to form a small-world network of 8 subgraphs that each might relate to a different aspect of cognitive control. See [@dosenbach2007] and notebooks for more detailed explanation of the method.
+Next, I will binarize the connectivity matrices with respect to an arbitrary threshold $r$. The remaining edges, i.e., connectivities stronger than $r$, are expected to form a small-world network of 8 subgraphs that each might relate to a different aspect of cognitive control. See [@dosenbach2007] and notebooks for more detailed explanation of the method.
 
 
 ## Notebooks
