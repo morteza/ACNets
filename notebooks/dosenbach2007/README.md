@@ -18,7 +18,7 @@ Next, I will binarize the connectivity matrices with respect to an arbitrary thr
 
 ## Notebooks
 
-This folder contains the following notebooks, each aims a specific analysis. All of notebooks can be previewed in GitLab, but if you want to change and run them by your own, see the [running notebooks](../../docs/running_notebooks.md) guide.
+> This folder contains the following notebooks, each aims a specific analysis. All of notebooks can be previewed in GitLab, but if you want to change and run them by your own, see the [running notebooks](../../docs/running_notebooks.md) guide.
 
 :notebook: :construction: [**1 Connectome**](1_connectome.ipynb): Loads preprocessed rs-fMRI, masks the brain, extracts time-series of the control-related ROIs, and finally calculates seed-based connectivity (i.e., correlations of all time-series pairs). A final connectivity matrix of size $(N_{subjects} \times 39 \times 39)$ will be generated and stored in the  `outputs/` directory.
 
