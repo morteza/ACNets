@@ -1,0 +1,26 @@
+{
+  "onset": {
+    "Description": "Event onset",
+    "Units": "second"
+  },
+  "duration": {
+    "Description": "Event duration",
+    "Units": "second",
+    "HED": ""
+  },
+  "event_type": {
+    "LongName": "Event type",
+    "Description": "Types of events that comprise a trial",
+    "Levels": {
+      "cue": "Cue is played",
+      "stimulus": "Stimulus is displayed",
+      "response": "Subject responded"
+    },
+    "HED": {
+      "cue": "Event/Category/Initial context, Event/Label/Cue, Event/Description/An auditory cue was played for 500ms, Sensory presentation/Auditory/Human voice, Participant/Effect/Cognitive/Cue",
+      "stimulus": "Event/Category/Experimental stimulus, Event/Label/Stimulus, Event/Description/Two Gabor patches were presented on screen for 100ms, Participant/Effect/Cognitive/Target, Sensory presentation/Visual/Rendering type/Screen/2D)",
+      "response": "Event/Category/Participant response, Event/Label/Response, Event/Description/The participant presses up or down as soon as the target is visible, Action/Button press/Keyboard",
+      "missing_arm": "Event/Category/Experimental stimulus, Event/Label/MissingArm, Event/Description/A fixation with missing arm is presented, Sensory presentation/Visual"
+    }
+  }
+}

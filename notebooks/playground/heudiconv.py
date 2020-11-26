@@ -13,7 +13,7 @@ print('working directory:', os.getcwd())
 raw_dir = Path('data/julia2018_raw/RawDicom_A1_A2/Attention')
 bids_dir = Path('data/julia2018/bids')
 subs = [p.stem for p in raw_dir.glob('*VGP*')]
-subs = ['NVGP01']
+# subs = ['NVGP01']
 sess = ['1', '2']
 
 
@@ -23,27 +23,32 @@ def create_tfmri_events(sub, ses, bids_dir=bids_dir):
 
     beh_file = list((bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'beh').glob('*_beh.tsv'))[0]
 
-    beh_df = pd.read_csv(beh_file, sep='\t')
+    BEH = pd.read_csv(beh_file, sep='\t')
 
     # block_offsets = beh.groupby('block_index').cue_onset.min()
 
-    cue_onsets = beh_df.cue_onset_in_block
     cue_duration = 0.5
-
-    stimulus_onsets = beh_df.stimulus_onset_in_block
     stimulus_duration = 0.1
 
     events = pd.DataFrame({
-        'run': beh_df.block_index,
-        'cue': cue_onsets,
-        'stimulus': stimulus_onsets,
+        'run': BEH.block_index,
+        'cue': BEH.cue_onset_in_block,
+        'stimulus': BEH.stimulus_onset_in_block,
+        'trial_type': BEH.trial_type,
+        'cue_file': BEH.cue,
+        'stim_file': BEH.stimulus,
+        'trial': BEH.trial_index
     })
 
-    events = events.melt(id_vars='run', var_name='event_type', value_name='onset').sort_values(['run', 'onset'])
+    events = events.melt(id_vars=['run', 'trial', 'trial_type', 'cue_file', 'stim_file'],
+                         var_name='event_type',
+                         value_name='onset').sort_values(['run', 'onset'])
 
     events['duration'] = events.event_type.apply(
         lambda t: cue_duration if t == 'cue' else stimulus_duration
     )
+
+    events.loc[events['event_type'] == 'cue', 'stim_file'] = events['cue_file']
 
     out_dir = bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'func'
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -51,12 +56,10 @@ def create_tfmri_events(sub, ses, bids_dir=bids_dir):
     for r in events['run'].unique():
         print(f'storing run{r} events...')
         run_events = events.query('run == @r').drop(columns='run')
-        run_events = run_events[['onset', 'duration', 'event_type']]
+        run_events = run_events[['onset', 'duration', 'trial_type', 'event_type', 'trial', 'stim_file']]
         run_events.to_csv(
             out_dir / f'sub-{sub}_ses-{ses}_task-attention_run-{r:02d}_events.tsv',
             sep='\t', na_rep='n/a', index=False, float_format='%.3f')
-
-    # TODO cols = onset, duration, trial_type, event_type, stim_file, trial, block
 
 
 def fix_fmap_intended_for(sub, ses, bids_dir=bids_dir):
@@ -92,10 +95,13 @@ for ses in sess:
            ' -c dcm2niix')
     print(cmd)
 
-    # res = subprocess.run(cmd.split(' '), stderr=subprocess.PIPE, text=True, cwd=os.getcwd())
+    res = subprocess.run(cmd.split(' '), stderr=subprocess.PIPE, text=True, cwd=os.getcwd())
 
-    # print(res.stderr)
-    create_tfmri_events(sub, ses)
-    # fix_fmap_intended_for(sub, ses)
+    print(res.stderr)
+    try:
+      create_tfmri_events(sub, ses)
+    except Exception:
+      print(f'cannot create events for sub-{sub}_ses-{ses}')
+    fix_fmap_intended_for(sub, ses)
 
 print('FINISHED!')
