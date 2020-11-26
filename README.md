@@ -30,7 +30,7 @@ All the raw and derivative datasets are stored in the [data/](data/) folder. Che
 
 ### Conventions
 
-Don't hesitate to use [BIDS]([https://](https://bids-specification.readthedocs.io/en/stable/)) to name data and folders.
+Don't hesitate to use [BIDS](https://bids-specification.readthedocs.io/en/stable/) to name data and folders.
 
 In addition to BIDS, this codebase is aimed to be compatible with the [xCIT Styleguide and Convention](https://). Feel free to use xCIT vocabulary when you name things.
 
