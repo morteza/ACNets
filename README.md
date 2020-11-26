@@ -1,10 +1,13 @@
 # Attentional Control Networks
 
-The goal of this project is to discover control-related networks in the brain using both resting and task fMRI. Additionally, we are also interested in how playing action video games affects those attentional control networks. See the [resources](#Resources) section below for details.
+The goal of this project is to discover control-related networks of the brain using both resting and task fMRI. Additionally, we are also interested in how playing action video games affects those attentional control networks. See the [resources](#Resources) section below for details.
 
 ## Replications
+
 - [dosenbach2007 replication notebooks](notebooks/dosenbach2007/)
+
 - :construction: [corbetta2002 replication notebooks](notebookks/corbetta)
+
 - :construction: [föcker2018 replication notebooks](notebooks/foecker2018)
 
 
