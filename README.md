@@ -1,41 +1,36 @@
 # Attentional Control Networks
 
-TODO
+The goal of this project is to discover control-related networks in the brain using both resting and task fMRI. Additionally, we are also interested in how playing action video games affects those attentional control networks. See the [resources](#Resources) section below for details.
 
-[Analysis Plan](https://docs.google.com/document/d/17bTvlyH8pX1pIjn28PLyDpQGEmSQ2wki0fiB5TeDuaE/edit?usp=sharing)
-
-## Data
-
-Please see the [`data/` folder](data/) for details on where to put the data.
-
-## Conventions
-
-Don't hesitate to use [BIDS](https://) for naming data and folder structures. In addition to that this code is compatible with [xCIT Styleguide and Convention](https://); feel free to use its vocabulary when you name things.
+## Replications
+- [dosenbach2007 replication notebooks](notebooks/dosenbach2007/)
+- :construction: [corbetta2002 replication notebooks](notebookks/corbetta)
+- :construction: [föcker2018 replication notebooks](notebooks/foecker2018)
 
 
-### Paths
-Make sure you use file paths that are relative to the project root, thereby it's always safe to assume project root is your working directory (i.e., what `pwd` would return).
+## Resources
 
-The only exception is paths in the notebooks, in which you need to address resources relative to the notebook path.
+- [ACNets project folder on Google Drive](https://drive.google.com/drive/folders/1azOq3-tWNipn3vOrgbFzos4cJHOeBZKO?usp=sharing)
+
+- [Analysis plan](https://docs.google.com/document/d/17bTvlyH8pX1pIjn28PLyDpQGEmSQ2wki0fiB5TeDuaE/edit?usp=sharing) (Google Docs)
+
+- [Resting state analysis plan](https://docs.google.com/document/d/1gM5IVyKHw9-r9RDRjl158D-yEBbwWnYk1FNUBx_bVic/edit?usp=sharing) (Google Docs)
+
 
 ## Development
 
-You need to take care of the following things before developing ACNets:
+See the [development guide](docs/development.md).
 
-1. **Prepare development environment**: ACNets requires pip to install dependencies (Python v3.6 and newer). All of the core dependencies are listed in the `requirements.txt`, but there is only one binary dependency that requires other package managers:
+### Data
 
-- If you have a MacOS computer with Homebrew installed, you can run `brew install dcm2niix`.
-- If you prefer Conda, `conda install -c conda-forge dcm2niix` on Linux, MacOS or Windows.
+All the raw and derivative datasets are stored in the [data/](data/) folder. Check the folder for a more detailed explanation on how DataLad is used to manage big datasets of this project.
 
-Overall, you can install all the dependencies like this:
+### Conventions
 
-```bash
-pip install -U -r requirements.txt
-pip3 install -e .       # to install acnets package
-brew install dcm2niix   # using Homebrew on macOS
-# conda install -c conda-forge dcm2niix  # using Conda
-```
+Don't hesitate to use [BIDS]([https://](https://bids-specification.readthedocs.io/en/stable/)) to name data and folders.
 
-2. **Install the data**: ACNets datasets are huge in size, thereby they are managed separately by DataLad. Look into the [data](data/) directory for more detailed explanation and how to install the data that you are interested in.
+In addition to BIDS, this codebase is aimed to be compatible with the [xCIT Styleguide and Convention](https://). Feel free to use xCIT vocabulary when you name things.
 
-Once all these requirements are established, you can use the ACNets APIs as exposed in the `acnets` module and demonstrated in the [tests/](tests/) directory. ACNets is best used in tandem with Jupyter notebooks, so look into the notebooks directory for use cases and analyses.
+## License
+
+This code, its project folder on Google Drive, and julia2018 dataset contain sensitive and confidential materials. Please do not share the resources without a proper permit.

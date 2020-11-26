@@ -35,4 +35,8 @@ This folder contains the following notebooks, each aims a specific analysis. All
 
 ## References
 
-[@dosenbach2007] https://doi.org/10.1073/pnas.0704320104
+Cohen, M. X. (2014). Analyzing neural time series data: theory and practice. MIT press.
+
+Dosenbach, N. U. F., Fair, D. A., Miezin, F. M., Cohen, A. L., Wenger, K. K., Dosenbach, R. A. T., Fox, M. D., Snyder, A. Z., Vincent, J. L., Raichle, M. E., Schlaggar, B. L. & Petersen, S. E. (2007). Distinct brain networks for adaptive and stable task control in humans. Proceedings of the National Academy of Sciences, 104(26), 11073–11078. https://doi.org/10.1073/pnas.0704320104
+
+Föcker, J., Cole, D., Beer, A. L. & Bavelier, D. (2018). Neural bases of enhanced attentional control: Lessons from action video game players. Brain and Behavior, 8(7), e01019. https://doi.org/10.1002/brb3.1019
