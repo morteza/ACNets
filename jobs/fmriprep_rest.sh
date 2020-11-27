@@ -39,7 +39,7 @@ echo "Slurm job ID: " $SLURM_JOB_ID
 
 # prepare dataset and work dir
 if [ ! -d $SCRATCH/$DATASET ]; then
-    tar xjf ${PROJECT_DIR}backup/$DATASET.tar.bz2 -C $SCRATCH
+    tar xjf ${PROJECT_DIR}backup/datasets/$DATASET.tar.bz2 -C $SCRATCH
 fi
 
 
