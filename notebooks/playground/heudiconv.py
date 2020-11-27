@@ -13,7 +13,7 @@ print('working directory:', os.getcwd())
 raw_dir = Path('data/julia2018_raw/RawDicom_A1_A2/Attention')
 bids_dir = Path('data/julia2018/bids')
 subs = [p.stem for p in raw_dir.glob('*VGP*')]
-# subs = ['NVGP01']
+subs = ['NVGP01']
 sess = ['1', '2']
 
 
@@ -63,18 +63,27 @@ def create_tfmri_events(sub, ses, bids_dir=bids_dir):
 
 
 def fix_fmap_intended_for(sub, ses, bids_dir=bids_dir):
+  """Uses scans sidecar to detect proper intendedFor field for fmap sidecars."""
+
+  ses_path = bids_dir / f'sub-{sub}' / f'ses-{ses}'
   fmap_path = bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'fmap'
-  func_path = bids_dir / f'sub-{sub}' / f'ses-{ses}' / 'func'
 
-  # TODO there are two fieldmaps, each only intended for a subset of BOLD scans.
-  # TODO the second fieldmap scan is intended for func/run-05,run-06,run-07,run-08.
-  fmap_sidecars = fmap_path.glob('*.json')
-  intended_for = [
-      str(ni.relative_to(bids_dir / f'sub-{sub}'))
-      for ni in func_path.glob('*.nii.gz')]
+  # load *_scan.tsv and processes fmaps
+  SCANS = pd.read_csv(ses_path / f'sub-{sub}_ses-{ses}_scans.tsv', sep='\t')
+  fmap_modalities = ['magnitude1', 'magnitude2', 'phasediff']
 
-  for file in fmap_sidecars:
+  for mod in fmap_modalities:
+    SCANS.loc[SCANS['filename'].str.contains(mod), mod] = SCANS['filename']
+    SCANS[mod].ffill(inplace=True)
+
+  SCANS = SCANS[SCANS['filename'].str.startswith('func/')]
+  SCANS = SCANS.melt(id_vars='filename', value_name='fmap', value_vars=fmap_modalities)
+
+  # now put an IntendedFor field in the fmap sidecar jsons
+  for file in fmap_path.glob('*.json'):
     print(f'updating IntendedFor in {file}...')
+    intended_for = [f'ses-{ses}/{func}' for func in SCANS.query('fmap.str.contains(@file.stem)')['filename'].tolist()]
+
     os.chmod(file, stat.S_IRUSR | stat.S_IWUSR)
     with open(file) as f:
       data = json.load(f)
