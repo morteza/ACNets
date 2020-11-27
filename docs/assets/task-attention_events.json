@@ -9,6 +9,22 @@
     "Units": "second",
     "HED": "/Attribute/Spatiotemporal/Temporal/Duration/#"
   },
+  "trial": {
+    "LongName": "Trial index",
+    "Description": "Trial index as in the whole study with eight blocks",
+    "HED": "Event/Category/Experiment control/Sequence/Trial/#"
+  },
+  "trial_type": {
+    "LongName": "Trial category",
+    "Description": "Category of trials in which the event occurred (non-exhaustive)",
+    "Levels": {
+      "standard_valid": "Cue was valid and no distracting noise was shown",
+      "standard_invalid": "Cue was invalid and no distracting noise was shown",
+      "distractor_valid": "Cue was valid and no distracting noise was shown",
+      "distractor_invalid": "Cue was invalid and distracting noise was shown",
+      "catch": "No stimuli was shown thereby participant had to withhold response"
+    }
+  },
   "event_type": {
     "LongName": "Event type",
     "Description": "Types of events that comprise a trial",
