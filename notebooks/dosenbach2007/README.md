@@ -2,18 +2,18 @@
 
 ## Introduction
 
-The goal of this notebook is to identify cognitive control connectome of the [föcker2018] resting-state dataset. In particular, I expect to see 4 relevant clusters in CON (cingulo-opecular network), FPN (fronto-parietal network), the cerebellum, and TPJ.
+The goal of this set of notebooks is to identify control-related connectome using resting data. In particular, we expect to see 4 relevant clusters in CON (cingulo-opecular network), FPN (fronto-parietal network), the cerebellum, and TPJ.
 
-Here, I will try to reimplement a method proposed in [@dosenbach2007], but using another resting-state dataset. To keep the  results comparable, I will stay faithful to the original paper and use the same parameters and visualizations.
+To do so, we will reimplement a graph-based method proposed in [@dosenbach2007], but using a resting-state dataset from [@föcker2018]. To keep the results comparable, I will stay faithful to the original paper and use the same parameters and visualizations.
 
 
 ## Method summary
 
-In brief, I use graph analysis to identify control networks using resting-state activities in a set of previously defined regions of cognitive control.
+In brief, we use graph analysis to identify control networks using resting activities in a set of known regions from prior researches.
 
 A systematic review of the cognitive control literature revealed 39 control-related ROIs [@dosenbach2007]. By extracting resting time-series of those ROIs and correlating them, we can produce a seed-based connectivity matrix of size $(39 \times 39)$ for each subject.
 
-Next, I will binarize the connectivity matrices with respect to an arbitrary threshold $r$. The remaining edges, i.e., connectivities stronger than $r$, are expected to form a small-world network of 8 subgraphs that each might relate to a different aspect of cognitive control. See [@dosenbach2007] and notebooks for more detailed explanation of the method.
+Next, the connectivity matrices will be binarized with respect to an arbitrary threshold $r$. The remaining edges, i.e., connectivities stronger than $r$, are expected to form a small-world network of 8 subgraphs that each might relate to a different aspect of cognitive control. See [@dosenbach2007] and notes in the notebooks for more detailed explanation of the method.
 
 
 ## Notebooks

@@ -4,11 +4,12 @@ The goal of this project is to discover control-related networks of the brain us
 
 ## Replications
 
+
 - [dosenbach2007 replication notebooks](notebooks/dosenbach2007/)
 
-- :construction: [corbetta2002 replication notebooks](notebookks/corbetta)
+- :construction: [corbetta2002 replication notebooks](notebooks/corbetta/)
 
-- :construction: [föcker2018 replication notebooks](notebooks/foecker2018)
+- :construction: [föcker2018 replication notebooks](notebooks/foecker2018/)
 
 
 ## Resources
@@ -36,4 +37,4 @@ In addition to BIDS, this codebase is aimed to be compatible with the [xCIT Styl
 
 ## License
 
-This code, its project folder on Google Drive, and julia2018 dataset contain sensitive and confidential materials. Please do not share the resources without a proper permit.
+This codebase, its project folder on Google Drive, and julia2018 dataset contain sensitive and confidential materials. Please do not share them without a proper permit.
