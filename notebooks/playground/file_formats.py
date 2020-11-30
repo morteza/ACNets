@@ -53,13 +53,13 @@ import matplotlib.pyplot as plt
 from IPython.display import display
 import seaborn as sns; sns.set()
 
-root = Path('/Users/morteza/workspace/xcit/ACNets/data/julia2018_raw/Resting_State/Resting_State/NVGP01')
+root = Path('data/julia2018_raw/Resting_State/Resting_State/NVGP01')
 
 raw_bold = root / 'NVGP01_bold' / 'NVGP01_resting.nii.gz'
 raw_magn = root / 'Magnitude_Image' / 'NVGP01_Mag_fieldmap_brain.nii.gz'
 raw_phas = root / 'Phase_Image' / 'NVGP01_Phase_rad_s.nii.gz'
 
-bids_root = Path('/Users/morteza/workspace/xcit/ACNets/data/julia2018_bids/sub-NVGP01/ses-rest')
+bids_root = Path('data/julia2018/sub-NVGP01/ses-rest')
 bids_bold = bids_root / 'func' / 'sub-NVGP01_ses-rest_task-rest_bold.nii.gz'
 
 raw_img = nib.load(raw_bold)

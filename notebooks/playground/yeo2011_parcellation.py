@@ -12,7 +12,7 @@ from nilearn.regions import connected_label_regions
 from pathlib import Path
 
 # %% 1. load resting bold data
-data_dir = Path('data/julia2018/bids/sub-AVGP01/ses-rest/func/')
+data_dir = Path('data/julia2018/sub-AVGP01/ses-rest/func/')
 data = str(data_dir / 'sub-AVGP01_ses-rest_task-rest_bold.nii.gz')
 
 # EXAMPLE DATA: data_filename = datasets.fetch_development_fmri(n_subjects=1).func[0]

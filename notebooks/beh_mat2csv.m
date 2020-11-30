@@ -1,6 +1,6 @@
 % Use relative path starting from the project directory.
 in_dir = 'data/julia2018_raw/Behavioral_Data/';
-out_dir = 'data/julia2018_raw_beh/';
+out_dir = 'data/julia2018/sourcedata/raw_behavioral/';
 
 
 mat_files = dir(fullfile(in_dir,'**/*.mat'));

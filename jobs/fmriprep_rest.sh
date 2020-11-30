@@ -13,11 +13,11 @@
 
 # job parameters
 JOB_NAME=fmriprep_rest
-DATASET=julia2018_datalad_v2020.10.2
+DATASET=julia2018_datalad_v2020.11.8
 RANDOM_SEED=42
 
 PROJECT_DIR=/work/projects/acnets/
-INPUT_DIR=${SCRATCH}${DATASET}/bids
+INPUT_DIR=${SCRATCH}${DATASET}
 OUTPUT_DIR=${PROJECT_DIR}derivatives/$JOB_NAME
 TMP_WORK_DIR=${SCRATCH}fmriprep_work
 

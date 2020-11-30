@@ -11,7 +11,7 @@ print('working directory:', os.getcwd())
 
 
 raw_dir = Path('data/julia2018_raw/RawDicom_A1_A2/Attention')
-bids_dir = Path('data/julia2018/bids')
+bids_dir = Path('data/julia2018')
 subs = [p.stem for p in raw_dir.glob('*VGP*')]
 subs = ['NVGP01']
 sess = ['1', '2']

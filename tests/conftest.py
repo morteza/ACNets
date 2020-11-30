@@ -10,9 +10,9 @@ def julia2018_raw_path():
 
 @pytest.fixture
 def julia2018_raw_beh_path():
-  return Path('data/julia2018/raw_beh')
+  return Path('data/julia2018/sourcedata/raw_behavioral')
 
 
 @pytest.fixture
 def bids_path():
-  return Path('data/julia2018/bids')
+  return Path('data/julia2018')

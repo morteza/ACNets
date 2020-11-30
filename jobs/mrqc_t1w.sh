@@ -12,8 +12,9 @@
 module purge
 module load tools/Singularity
 
-input=/work/projects/acnets/backup/julia2018/bids/
-output=/work/projects/acnets/derivatives/mriqc/julia2018_bids/
+# FIXME: this is invalid now, use archived version of the dataset (see other jobs for some examples)
+input=/work/projects/acnets/backup/julia2018/
+output=/work/projects/acnets/derivatives/mriqc/julia2018/
 # time singularity exec docker://poldracklab/mriqc:0.15.1 mriqc input output participant --no-sub
 singularity exec \
     docker://poldracklab/mriqc:latest mriqc \

@@ -37,10 +37,10 @@ The following code, for example, shows how to download all the scans for a given
 ```bash
 cd data/julia2018/
 
-datalad get bids/sub-NVGP01
+datalad get sub-NVGP01
 ```
 
-Upon successful download, the content of all the files inside the `data/julia2018/bids/sub-NVGP01/` will be available on your local machine.
+Upon successful download, the content of all the files inside the `data/julia2018/sub-NVGP01/` will be available on your local machine.
 
 
 ## FAQ
