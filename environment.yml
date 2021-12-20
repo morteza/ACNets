@@ -1,0 +1,11 @@
+name: acnets
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - datalad
+  - pip
+  - ipykernel
+  - dcm2niix
+  - pip:
+    - -r requirements.txt

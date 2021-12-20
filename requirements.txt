@@ -4,18 +4,21 @@
 scipy
 pandas
 seaborn
+bokeh
+
 pytest
 pytest-plt
+
 flake8
 pep8-naming
 flake8-todo
-nipype
-fmriprep-docker
-pybids
+
 networkx
-bokeh
+
+fmriprep-docker
+
+pybids
+nipype
 visbrain
-# dicom2nifti     # use dcm2niix instead for sidecars
-# dcm2niix        # use conda
 nilearn
-heudiconv=0.8.0
+# heudiconv=0.8.0
