@@ -3,9 +3,9 @@ import logging
 import sys
 
 
-from python.preprocessing import Julia2018BehavioralPreprocessor
-from python.preprocessing import Julia2018RestingPreprocessor
-from python.preprocessing import Julia2018TaskPreprocessor
+from python.acnets.preprocessing import (Julia2018BehavioralPreprocessor,
+                                         Julia2018RestingPreprocessor,
+                                         Julia2018TaskPreprocessor)
 
 
 def test_rest2bids(julia2018_raw_path, bids_path):
