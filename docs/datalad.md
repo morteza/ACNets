@@ -28,6 +28,14 @@ datalad clone ria+ssh://iris-cluster:/work/projects/acnets/backup/datalad_riasto
 datalad clone ria+ssh://iris-cluster:/work/projects/acnets/backup/datalad_riastore#~dosenbach2007
 ```
 
+> Alternatively, you can clone the datasets from the xCIT external drive (Samsung X5):
+> 
+> ```bash
+> datalad install file:///Volumes/xcit_x5/acnets/data/julia2018
+> datalad install file:///Volumes/xcit_x5/acnets/data/dosenbach2007
+> ```
+
+
 This will create folder structures and links for the two datasets, respectively in `data/julia2018/` and `data/dosenbach2007/` folders, but leave the content of some files on the remote server.
 
 Most small files such as `.tsv` or `.md` texts will be available locally right away, but larger files like Nifti images remain inaccessible until you explicitly download them with DataLad.
