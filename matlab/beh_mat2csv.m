@@ -1,4 +1,7 @@
-% Use relative path starting from the project directory.
+% convert behavioral, event, and block data, from matlab data structure into CSV files.
+% Those CSV files will be later used to create a BIDS dataset for the experiment.
+
+% Use relative path starting from the project root directory.
 in_dir = 'data/julia2018_raw/Behavioral_Data/';
 out_dir = 'data/julia2018/sourcedata/raw_behavioral/';
 
