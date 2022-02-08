@@ -11,13 +11,14 @@ dependencies:
   - datalad
   - pip
   - ipykernel
+  - nbformat
   - flake8
   - pep8-naming
   - pytest
   - watermark
 
   # the rest
-
+  - plotly
   - seaborn
   - networkx
   - nipype
