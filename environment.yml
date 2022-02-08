@@ -1,11 +1,46 @@
+# This file may be used to create an environment using:
+# $ conda env create --file <this file>
+# platform: osx-64
+
 name: acnets
 channels:
   - conda-forge
 dependencies:
+  # DEV
   - python=3.9
   - datalad
   - pip
   - ipykernel
+  - flake8
+  - pep8-naming
+  - pytest
+  - watermark
+
+  # the rest
+
+  - seaborn
+  - networkx
+  - nipype
+  - nilearn
+
+  # there will be an incompatibility issue if it's install via pip
+  - pandas
+  # XGBoost classifier requires external libraries, don't use `xgboost` package.
+  # - py-xgboost
+  # Install XArray and its dependencies
+  - xarray
+  - netCDF4     # required by xarray
+  # UMAP requires Numba which requires numpy<=1.21.
+  - umap-learn
+
   - dcm2niix
+  # - heudiconv=0.8.0
+  # - fmriprep-docker
+
   - pip:
+    - pybids
+    - flake8-todo
+    - pytest-plt
+    # - visbrain
+
     - -r requirements.txt

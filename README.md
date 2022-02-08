@@ -5,11 +5,11 @@ The goal of this project is to discover control-related networks of the brain us
 ## Replications
 
 
-- [dosenbach2007 replication notebooks](notebooks/dosenbach2007/)
+- [dosenbach2007 replication notebooks](notebooks/dosenbach2007_replication/)
 
-- :construction: [corbetta2002 replication notebooks](notebooks/corbetta/)
+- [föcker2018 replication notebooks](notebooks/foecker2018_replication/)
 
-- :construction: [föcker2018 replication notebooks](notebooks/foecker2018/)
+- :construction: [corbetta2002 replication notebooks](notebooks/corbetta_replication/)
 
 
 ## Resources
