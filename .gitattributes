@@ -1,2 +1,1 @@
-data/julia2018_resting/connectivities.nc filter=lfs diff=lfs merge=lfs -text
-data/julia2018_resting/timeseries.nc filter=lfs diff=lfs merge=lfs -text
+data/julia2018_resting/* filter=lfs diff=lfs merge=lfs -text
