@@ -33,6 +33,7 @@ dependencies:
   - netCDF4     # required by xarray
   # UMAP requires Numba which requires numpy<=1.21.
   - umap-learn
+  - shap
 
   - dcm2niix
   # - heudiconv=0.8.0
