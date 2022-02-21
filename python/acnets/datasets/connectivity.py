@@ -5,19 +5,20 @@ import pandas as pd
 
 
 __supported_parcellations = [
-    'dosenbach2007', 'dosenbach2010', 'difumo_64_2', 'difumo_128_2', 'difumo_1024_2']
+    'dosenbach2007', 'dosenbach2010', 'difumo_64_2', 'difumo_128_2', 'difumo_1024_2',]
 
 __supported_kinds = [
-    'tangent', 'precision', 'correlation', 'covariance', 'partial_correlation']
+    'tangent', 'precision', 'correlation', 'covariance', 'partial_correlation',
+    'chatterjee', 'transfer_entropy']
 
 
 def __get_feature_name(
     feature_info,
     sep=' \N{left right arrow} '
 ):
-  
+
   names = feature_info.index.to_series().apply(
-      lambda f1: f1 if f1 == feature_info.name else f'{f1} {sep} {feature_info.name}')
+      lambda f1: f1 if f1 == feature_info.name else f'{f1}{sep}{feature_info.name}')
 
   return names
 
