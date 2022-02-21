@@ -2,6 +2,9 @@ import numpy as np
 from sklearn.covariance import LedoitWolf
 from nilearn import connectome
 
+from ._transfer_entropy import transfer_entropy
+from ._chatterjee import chatterjee_xicoef
+
 
 class ExtraConnectivityMeasure(connectome.ConnectivityMeasure):
 
@@ -33,87 +36,16 @@ class ExtraConnectivityMeasure(connectome.ConnectivityMeasure):
 
   def transform(self, X, confounds=None):
     if self.kind == 'transfer_entropy':
-      return self._transfer_entropy(X)
+      return transfer_entropy(X)
     elif self.kind == 'chatterjee':
-      return self.chatterjee(X)
+      return chatterjee_xicoef(X)
     else:
       return super().transform(X, confounds)
 
   def fit_transform(self, X, y=None, confounds=None):
     if self.kind == 'transfer_entropy':
-      return self._transfer_entropy(X)
+      return transfer_entropy(X)
     if self.kind == 'chatterjee':
-      return self._chatterjee(X)
+      return chatterjee_xicoef(X)
     else:
       return super().fit_transform(X, y, confounds)
-
-  def _chatterjee(self, X):
-    """xi correlation coefficient (alternative implementation)
-
-    Written by github/atarashansky, modified by github/escherba
-    https://github.com/czbiohub/xicor/issues/17#issue-965635013
-    """
-
-    X_xi = []
-    for X_sub in X:
-
-      # X is in scikit format, replace region and time axes
-      X_sub = X_sub.transpose(1, 0)
-
-      subj_te = np.zeros((X_sub.shape[0], X_sub.shape[0]))
-
-      n = X_sub.shape[1]
-
-      for i, source in enumerate(X_sub):
-        for j, target in enumerate(X_sub):
-          target = target[np.argsort(source, kind='quicksort')]
-          _, inverse, counts = np.unique(target, return_inverse=True, return_counts=True)
-          right = np.cumsum(counts)[inverse]
-          left = np.cumsum(np.flip(counts))[(counts.size - 1) - inverse]
-          corr = 1. - 0.5 * float(np.abs(np.diff(right)).sum() / np.mean(left * (n - left)))
-          subj_te[i, j] = corr
-
-      X_xi.append(subj_te)
-
-    X_xi = np.stack(X_xi)
-
-    return X_xi
-
-  def _transfer_entropy(self, X) -> np.ndarray:
-    """Calculate transfer entropy between all pairs of nodes in X.
-
-    Parameters
-    ----------
-    X : numpy.ndarray
-        time series of shape (n_subjects, n_regions, n_timepoints)
-
-    Returns
-    -------
-    np.ndarray
-        Adjacency matrix of size (n_subjects, n_regions, n_regions)
-    """
-
-    import sys
-    import pyinform
-
-    X_te = []
-    for X_sub in X:
-
-      # X is in scikit format, replace region and time axes
-      X_sub = X_sub.transpose(1, 0)
-
-      X_sub -= X_sub.mean(axis=1, keepdims=True)
-      X_sub /= X_sub.std(axis=1, keepdims=True) + sys.float_info.epsilon
-      X_sub, *_ = pyinform.utils.bin_series(X_sub, b=101)
-
-      subj_te = np.zeros((X_sub.shape[0], X_sub.shape[0]))
-
-      for i, source in enumerate(X_sub):
-        for j, target in enumerate(X_sub):
-          subj_te[i, j] = pyinform.transfer_entropy(source, target, k=1)
-
-      X_te.append(subj_te)
-
-    X_te = np.stack(X_te)
-
-    return X_te
