@@ -13,33 +13,73 @@ class ExtraConnectivityMeasure(connectome.ConnectivityMeasure):
     self.vectorize = vectorize
     self.discard_diagonal = discard_diagonal
 
-    if kind.lower() == 'transfer_entropy':
+    if kind == 'transfer_entropy':
       if vectorize:
         raise ValueError('`vectorize=True` cannot be used with transfer entropy.')
       if discard_diagonal:
         raise ValueError('Discard diagonal cannot be used with non-vectorized connectivities.')
+    elif kind == 'chatterjee':
+      pass
     else:
       super().__init__(cov_estimator, kind, vectorize, discard_diagonal)
 
   def fit(self, X, y=None):
-    if self.kind.lower() == 'transfer_entropy':
+    if self.kind == 'transfer_entropy':
+      return self
+    elif self.kind == 'chatterjee':
       return self
     else:
       return super().fit(X, y)
 
   def transform(self, X, confounds=None):
-    if self.kind.lower() == 'transfer_entropy':
-      return self._transfer_entropy_matrix(X)
+    if self.kind == 'transfer_entropy':
+      return self._transfer_entropy(X)
+    elif self.kind == 'chatterjee':
+      return self.chatterjee(X)
     else:
       return super().transform(X, confounds)
 
   def fit_transform(self, X, y=None, confounds=None):
-    if self.kind.lower() == 'transfer_entropy':
-      return self._transfer_entropy_matrix(X)
+    if self.kind == 'transfer_entropy':
+      return self._transfer_entropy(X)
+    if self.kind == 'chatterjee':
+      return self._chatterjee(X)
     else:
       return super().fit_transform(X, y, confounds)
 
-  def _transfer_entropy_matrix(self, X) -> np.ndarray:
+  def _chatterjee(self, X):
+    """xi correlation coefficient (alternative implementation)
+
+    Written by github/atarashansky, modified by github/escherba
+    https://github.com/czbiohub/xicor/issues/17#issue-965635013
+    """
+
+    X_xi = []
+    for X_sub in X:
+
+      # X is in scikit format, replace region and time axes
+      X_sub = X_sub.transpose(1, 0)
+
+      subj_te = np.zeros((X_sub.shape[0], X_sub.shape[0]))
+
+      n = X_sub.shape[1]
+
+      for i, source in enumerate(X_sub):
+        for j, target in enumerate(X_sub):
+          target = target[np.argsort(source, kind='quicksort')]
+          _, inverse, counts = np.unique(target, return_inverse=True, return_counts=True)
+          right = np.cumsum(counts)[inverse]
+          left = np.cumsum(np.flip(counts))[(counts.size - 1) - inverse]
+          corr = 1. - 0.5 * float(np.abs(np.diff(right)).sum() / np.mean(left * (n - left)))
+          subj_te[i, j] = corr
+
+      X_xi.append(subj_te)
+
+    X_xi = np.stack(X_xi)
+
+    return X_xi
+
+  def _transfer_entropy(self, X) -> np.ndarray:
     """Calculate transfer entropy between all pairs of nodes in X.
 
     Parameters
