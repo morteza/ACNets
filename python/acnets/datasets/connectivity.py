@@ -30,6 +30,7 @@ def load_connectivity(
     discard_diagonal=False,
     discard_invalid_subjects=False,
     vectorize=False,
+    only_diagonal=False,
     return_y=None,
     return_feature_names=True,
     filename=None,
@@ -45,6 +46,7 @@ def load_connectivity(
   # NOTE these are currently hidden kwargs because of irrelevance to the loading
   threshold = kwargs.get('binarization_threshold', None)
   shuffle = kwargs.get('shuffle', False)  # noqa
+  discard_cerebellum = kwargs.get('discard_cerebellum', False)
 
   filename = filename or (Path('data') / dataset / f'connectivity_{parcellation}.nc')
 
@@ -59,7 +61,7 @@ def load_connectivity(
 
   regions = ds.coords['region'].values
 
-  if vectorize:
+  if only_diagonal:
     feature_names = regions
     X = np.array([np.diag(subj_conn) for subj_conn in _conn.values])
 
@@ -70,14 +72,16 @@ def load_connectivity(
                                  index=regions, columns=regions)
     feature_names = feature_names.apply(__get_feature_name)
 
-    feature_names = feature_names.values[np.triu_indices_from(feature_names.values, k=triu_k)]
-
-    X = np.array([subj_conn[np.triu_indices_from(subj_conn, k=triu_k)]
-                  for subj_conn in _conn.values])
+    X = _conn.values
 
   if threshold is not None:
-    X_threshold = np.median(X, axis=1) + float(threshold) * np.std(X, axis=1)
-    X = np.where(np.abs(X) >= X_threshold.reshape(-1, 1), X, 0)
+    print('Binarizing connectivity matrix... ', end='')
+
+    X_threshold = (
+      np.median(X, axis=1, keepdims=True) + threshold * np.std(X, axis=1, keepdims=True))
+
+    X = np.where(np.abs(X) >= X_threshold, X, 0)
+    print('done!')
 
   if discard_invalid_subjects:
     behavioral_scores = ds['inverse_efficiency_score_ms'].values
@@ -85,8 +89,16 @@ def load_connectivity(
     invalid_subjects = subj_labels.to_series().duplicated(keep='first')[32:]
     invalid_subjects = invalid_subjects | np.isnan(behavioral_scores)
     invalid_subjects = np.isnan(behavioral_scores)
-
     X = X[~invalid_subjects]
+
+  if discard_cerebellum:
+    raise NotImplementedError('Cerebellum discarding not implemented yet')
+
+  if vectorize:
+    X = np.array([
+        subj_conn[np.triu_indices_from(subj_conn, k=triu_k)] for subj_conn in X])
+    feature_names = feature_names.values[
+        np.triu_indices_from(feature_names.values, k=triu_k)]
 
   if return_y:
     y = ds['group'].values
