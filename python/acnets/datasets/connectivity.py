@@ -43,6 +43,9 @@ def load_connectivity(
   if kind not in __supported_kinds:
     raise ValueError('Invalid connectivity kind: {}'.format(kind))
 
+  if only_diagonal and vectorize:
+    raise ValueError('Having vectorized and only_diagonal is not possible yet.')
+
   # NOTE these are currently hidden kwargs because of irrelevance to the loading
   threshold = kwargs.get('binarization_threshold', None)
   shuffle = kwargs.get('shuffle', False)  # noqa
@@ -66,8 +69,6 @@ def load_connectivity(
     X = np.array([np.diag(subj_conn) for subj_conn in _conn.values])
 
   else:
-    triu_k = 1 if discard_diagonal else 0
-
     feature_names = pd.DataFrame(np.empty((len(regions), len(regions))),
                                  index=regions, columns=regions)
     feature_names = feature_names.apply(__get_feature_name)
@@ -77,8 +78,8 @@ def load_connectivity(
   if threshold is not None:
     print('Binarizing connectivity matrix... ', end='')
 
-    X_threshold = (
-      np.median(X, axis=1, keepdims=True) + threshold * np.std(X, axis=1, keepdims=True))
+    X_threshold = (np.median(X, axis=1, keepdims=True) +
+                   threshold * np.std(X, axis=1, keepdims=True))
 
     X = np.where(np.abs(X) >= X_threshold, X, 0)
     print('done!')
@@ -95,6 +96,7 @@ def load_connectivity(
     raise NotImplementedError('Cerebellum discarding not implemented yet')
 
   if vectorize:
+    triu_k = 1 if discard_diagonal else 0
     X = np.array([
         subj_conn[np.triu_indices_from(subj_conn, k=triu_k)] for subj_conn in X])
     feature_names = feature_names.values[
