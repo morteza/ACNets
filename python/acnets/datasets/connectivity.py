@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+from sklearn.preprocessing import binarize
 import xarray as xr
 import pandas as pd
 
@@ -27,12 +28,12 @@ def load_connectivity(
     dataset='julia2018_resting',
     parcellation='dosenbach2007',
     kind='tangent',
-    discard_diagonal=False,
     discard_invalid_subjects=False,
     vectorize=False,
+    binarize=False,
     only_diagonal=False,
+    discard_diagonal=False,
     return_y=None,
-    return_feature_names=True,
     filename=None,
     **kwargs
 ):
@@ -43,13 +44,8 @@ def load_connectivity(
   if kind not in __supported_kinds:
     raise ValueError('Invalid connectivity kind: {}'.format(kind))
 
-  if only_diagonal and vectorize:
-    raise ValueError('Having vectorized and only_diagonal is not possible yet.')
-
   # NOTE these are currently hidden kwargs because of irrelevance to the loading
-  threshold = kwargs.get('binarization_threshold', None)
   shuffle = kwargs.get('shuffle', False)  # noqa
-  discard_cerebellum = kwargs.get('discard_cerebellum', False)
 
   filename = filename or (Path('data') / dataset / f'connectivity_{parcellation}.nc')
 
@@ -65,24 +61,22 @@ def load_connectivity(
   regions = ds.coords['region'].values
 
   if only_diagonal:
-    feature_names = regions
-    X = np.array([np.diag(subj_conn) for subj_conn in _conn.values])
-
+    diag_conn = np.array([np.diag(subj_conn) for subj_conn in _conn.values])
+    X = pd.DataFrame(diag_conn, index=ds.coords['subject'], columns=regions)
   else:
     feature_names = pd.DataFrame(np.empty((len(regions), len(regions))),
                                  index=regions, columns=regions)
     feature_names = feature_names.apply(__get_feature_name)
-
     X = _conn.values
 
-  if threshold is not None:
-    print('Binarizing connectivity matrix... ', end='')
-
-    X_threshold = (np.median(X, axis=1, keepdims=True) +
-                   threshold * np.std(X, axis=1, keepdims=True))
-
-    X = np.where(np.abs(X) >= X_threshold, X, 0)
-    print('done!')
+    if binarize:  # binarize
+      X_bin = []
+      from sklearn.preprocessing import Binarizer
+      for X_subj in X:
+        threshold = np.median(X_subj) + float(binarize) * np.std(X_subj)
+        X_subj_bin = Binarizer(threshold=threshold).transform(np.abs(X_subj))
+        X_bin.append(X_subj_bin)
+      X = np.array(X_bin)
 
   if discard_invalid_subjects:
     behavioral_scores = ds['inverse_efficiency_score_ms'].values
@@ -90,17 +84,18 @@ def load_connectivity(
     invalid_subjects = subj_labels.to_series().duplicated(keep='first')[32:]
     invalid_subjects = invalid_subjects | np.isnan(behavioral_scores)
     invalid_subjects = np.isnan(behavioral_scores)
+    print(invalid_subjects)
     X = X[~invalid_subjects]
 
-  if discard_cerebellum:
-    raise NotImplementedError('Cerebellum discarding not implemented yet')
-
-  if vectorize:
+  if vectorize and not only_diagonal:
     triu_k = 1 if discard_diagonal else 0
-    X = np.array([
-        subj_conn[np.triu_indices_from(subj_conn, k=triu_k)] for subj_conn in X])
-    feature_names = feature_names.values[
+    vec_conns = np.array(
+        [subj_conn[np.triu_indices_from(subj_conn, k=triu_k)]
+         for subj_conn in X])
+
+    vec_feature_names = feature_names.values[
         np.triu_indices_from(feature_names.values, k=triu_k)]
+    X = pd.DataFrame(vec_conns, index=ds.coords['subject'], columns=vec_feature_names)
 
   if return_y:
     y = ds['group'].values
@@ -110,9 +105,7 @@ def load_connectivity(
   if shuffle:
     raise NotImplementedError('Shuffling is not implemented yet')
 
-  if return_y and return_feature_names:
-    return X, y, feature_names
-  elif return_feature_names:
-    return X, feature_names
+  if return_y:
+    return X, y
   else:
     return X

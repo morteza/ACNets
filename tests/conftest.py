@@ -16,3 +16,20 @@ def julia2018_raw_beh_path():
 @pytest.fixture
 def bids_path():
   return Path('data/julia2018')
+
+
+@pytest.fixture
+def data_path():
+  return Path('data/')
+
+
+@pytest.fixture
+def connectivity_parcellations():
+  from python.acnets.datasets.connectivity import __supported_parcellations
+  return __supported_parcellations
+
+
+@pytest.fixture
+def connectivity_measures():
+  from python.acnets.datasets.connectivity import __supported_kinds
+  return __supported_kinds
