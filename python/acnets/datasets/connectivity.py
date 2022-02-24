@@ -1,6 +1,5 @@
 from pathlib import Path
 import numpy as np
-from sklearn.preprocessing import binarize
 import xarray as xr
 import pandas as pd
 
@@ -22,6 +21,22 @@ def __get_feature_name(
       lambda f1: f1 if f1 == feature_info.name else f'{f1}{sep}{feature_info.name}')
 
   return names
+
+def get_network_names(features, parcellation):
+  from nilearn.datasets import fetch_coords_dosenbach_2010
+
+  if parcellation.lower() == 'dosenbach2010':
+    coords = fetch_coords_dosenbach_2010(legacy_format=False)
+
+    network_names = pd.concat(
+      [coords['rois'].reset_index(drop=True),
+      pd.Series(coords['labels']),
+      coords['networks'].reset_index(drop=True)], axis=1)
+    network_names.set_index(0, inplace=True)
+    network_names.index.name = 'region'
+
+  elif ATLAS.lower() == 'dosenbach2007':
+    network_names = pd.read_csv('data/dosenbach2007/ROIS.csv', index_col=0)
 
 
 def load_connectivity(
