@@ -12,31 +12,46 @@ __supported_kinds = [
     'chatterjee', 'transfer_entropy']
 
 
-def __get_feature_name(
-    feature_info,
-    sep=' \N{left right arrow} '
-):
+def __get_feature_name(feature_info,
+                       sep=' \N{left right arrow} '):
 
   names = feature_info.index.to_series().apply(
       lambda f1: f1 if f1 == feature_info.name else f'{f1}{sep}{feature_info.name}')
 
   return names
 
-def get_network_names(features, parcellation):
+
+def get_networks(features, parcellation):
   from nilearn.datasets import fetch_coords_dosenbach_2010
 
   if parcellation.lower() == 'dosenbach2010':
     coords = fetch_coords_dosenbach_2010(legacy_format=False)
+    labels = pd.concat([
+        pd.Series(coords['labels']),
+        coords['networks'].reset_index(drop=True)], axis=1)
+    labels.rename({0: 'region'}, inplace=True)
+    labels.set_index(0, inplace=True)
+  elif parcellation.lower() == 'dosenbach2007':
+    labels = pd.read_csv('data/dosenbach2007/ROIS.csv', index_col=0)
+    labels = labels[['network']]
 
-    network_names = pd.concat(
-      [coords['rois'].reset_index(drop=True),
-      pd.Series(coords['labels']),
-      coords['networks'].reset_index(drop=True)], axis=1)
-    network_names.set_index(0, inplace=True)
-    network_names.index.name = 'region'
+  networks = []
 
-  elif ATLAS.lower() == 'dosenbach2007':
-    network_names = pd.read_csv('data/dosenbach2007/ROIS.csv', index_col=0)
+  for f in features:
+    if '↔' in f:
+      src, tgt = f.split(' ↔ ')
+      src_network = labels.loc[src, 'network']
+      tgt_network = labels.loc[tgt, 'network']
+      if src_network == tgt_network:
+        network = labels.loc[src, 'network']
+      else:
+        network = f'{src_network} ↔ {tgt_network}'
+    else:
+      network = labels.loc[f, 'network']
+
+    networks.append((network, f))
+
+  return networks
 
 
 def load_connectivity(
@@ -116,6 +131,8 @@ def load_connectivity(
     y = ds['group'].values
     if discard_invalid_subjects:
       y = y[~invalid_subjects]
+
+  X.columns = pd.MultiIndex.from_tuples(get_networks(X.columns, parcellation))
 
   if shuffle:
     raise NotImplementedError('Shuffling is not implemented yet')
