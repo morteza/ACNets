@@ -63,3 +63,12 @@ datalad unlock derivatives/fmriprep/dataset_description.json
 
 Now you can edit the content of `dataset_description.json` and perhaps save your changes and push them to the remote repository with `datalad save` and `datalad push --to origin` commands.
 </details>
+
+<details>
+<summary><b>How can I download the fmriprep derivatives from Iris cluster?</b></summary>
+
+Change your working folder to cloned `data/julia2018/` and use the following datalad command to download the derivatives.
+
+```datalad get -s iris-ria-storage derivatives/fmriprep```
+
+</details>
