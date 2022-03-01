@@ -11,6 +11,7 @@ dependencies:
   - datalad
   - pip
   - ipykernel
+  - ipywidgets
   - nbformat
   - flake8
   - pep8-naming
