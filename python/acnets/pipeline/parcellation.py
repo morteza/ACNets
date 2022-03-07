@@ -182,8 +182,8 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     return self
 
-  def transform(self, X):  # noqa: N803
+  def transform(self, X=None):  # noqa: N803
     if not self.dataset:
       raise ValueError('Parcellation has not been fitted yet.')
 
-    raise NotImplementedError()
+    return self.dataset['timeseries'].values

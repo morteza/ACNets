@@ -4,7 +4,7 @@ from sklearn.base import TransformerMixin, BaseEstimator
 
 
 class ConfirmatoryFactorAnalyser(TransformerMixin, BaseEstimator):
-  def __init__(self) -> None:
+  def __init__(self, mappings=dict()) -> None:
     super().__init__()
 
   def fit(self, X, y=None, **fit_params):
