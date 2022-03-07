@@ -7,12 +7,22 @@ from pathlib import Path
 from nilearn.interfaces.bids import get_bids_files
 from nilearn.interfaces.fmriprep import load_confounds_strategy
 from nilearn import datasets as nilearn_datasets
+from nilearn import plotting as nilearn_plotting
 from nilearn import maskers
 from tqdm import tqdm
+import logging
+
+from ..parcellations import maxprob, dosenbach, difumo
+
+_masker_funcs = {
+    'cort-maxprob': maxprob.load_masker,
+    'difumo': difumo.load_masker,
+    'dosenbach': dosenbach.load_masker,
+}
 
 
 class Parcellation(TransformerMixin, BaseEstimator):
-  """# to parcellate activities given a parcellation atlas.
+  """ to parcellate activities given an atlas.
   """
 
   def __init__(self,
@@ -27,19 +37,16 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     self.verbose = verbose
     self.atlas_name = atlas_name
+    self.cache_folder = cache_folder
     self.denoise_strategy = denoise_strategy
-    self.cache_folder = Path(cache_folder)
     self.bids_dir = Path(bids_dir)
 
     self.fmriprep_dir = self.bids_dir / 'derivatives/fmriprep'
     self.fmriprep_bids_space = fmriprep_bids_space
 
-    # load from cache or look for fmriprep derivatives
-    cached_dataset_path = self.cache_folder / f'timeseries_{self.atlas_name}.nc'
-    if cached_dataset_path.exists():
-      self.dataset = xr.open_dataset(cached_dataset_path)
-    elif not self.fmriprep_dir.exists():
-        raise ValueError(f'{self.fmriprep_dir} does not exist')
+    # validation (TODO more them to a function)
+    if not self.cache_folder and not self.fmriprep_dir.exists():
+      raise ValueError('Neither BIDS dataset exists nor cached dataset is set.')
 
     super().__init__()
 
@@ -66,30 +73,19 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     return img_files, mask_files
 
-  def load_masker(self, atlas_name, mask_img, return_atlas_labels=True):
-    if 'cort-maxprob' in atlas_name:
-      atlas = nilearn_datasets.fetch_atlas_harvard_oxford(atlas_name)
-      atlas_labels_img = atlas.maps
+  def load_masker(self, atlas_name, mask_img):
 
-      masker = maskers.NiftiLabelsMasker(
-          labels_img=atlas_labels_img,
-          mask_img=mask_img,
-          standardize=True,
-          #  memory='tmp/nilearn_cache',
-          verbose=0)
-
-      if return_atlas_labels:
-        atlas_labels = pd.DataFrame(atlas.labels, columns=['region'])
-        atlas_labels = atlas_labels.drop(index=[0]).set_index('region')
+    for key, func in _masker_funcs.items():
+      if re.match(key, atlas_name):
+        masker, atlas_labels = func(atlas_name, mask_img)
         return masker, atlas_labels
-      else:
-        return masker
 
+    # none of the atlases matched.
     raise ValueError('Atlas name {} not recognized.'.format(atlas_name))
 
   def extract_timeseries(self, img_files, mask_files, atlas_name):
 
-    time_series = {}
+    _timeseries = {}
 
     confounds, sample_masks = load_confounds_strategy(img_files, self.denoise_strategy)
 
@@ -108,18 +104,18 @@ class Parcellation(TransformerMixin, BaseEstimator):
     for img, mask, confound, sample_mask in img_iterator:
 
       subject = re.search('func/sub-(.*)_ses', img)[1]
-      masker, atlas_labels = self.load_masker(atlas_name, mask, return_atlas_labels=True)
+      masker, atlas_labels = self.load_masker(atlas_name, mask)
       ts = masker.fit_transform(img, confound, sample_mask)
 
       if ts.shape[0] > len(valid_timepoints):
         ts = ts[timepoints_mask]
 
-      time_series[subject] = ts
+      _timeseries[subject] = ts
 
-    return time_series, atlas_labels
+    return _timeseries, atlas_labels
 
   def create_dataset(self, atlas_labels, time_series=None):
-    
+
     # dims: (n_subjects, n_timepoints, n_regions)
     _time_series_arr = np.stack(list(time_series.values()))
     preprocessed_subjects = list(time_series.keys())
@@ -150,23 +146,12 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     return _ds
 
-  def get_tr(self):
-    """ use pybids to extract TR from BIDS metadata.
-
-    Returns
-    -------
-    int
-        Repetition time in seconds
-    """
-
-    from bids import BIDSLayout
-    layout = BIDSLayout(self.fmriprep_dir, derivatives=True)
-    t_r = layout.get_tr(derivatives=True, task='rest')
-    return t_r
-
-  def save_to_cache(self, overwrite=False):
+  def cache_dataset(self, overwrite=False):
     if not self.dataset:
       raise ValueError('Parcellation has not been fitted yet.')
+
+    if not self.cache_folder:
+      raise ValueError('No cache_folder is set.')
 
     cached_ds_path = self.cache_folder / f'timeseries_{self.atlas_name}.nc'
 
@@ -175,6 +160,14 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
   def fit(self, X=None, y=None, **fit_params):  # noqa: N803
 
+    # load from cache
+    if self.cache_folder:
+      cached_ds_path = Path(self.cache_folder) / f'timeseries_{self.atlas_name}.nc'
+      if cached_ds_path.exists():
+        self.dataset = xr.open_dataset(cached_ds_path)
+        return self
+
+    # fit if not already fitted
     if not self.dataset:
       img_files, mask_files = self.get_fmriprep_files()
       time_series, atlas_labels = self.extract_timeseries(img_files, mask_files, self.atlas_name)
