@@ -26,8 +26,8 @@ class Parcellation(TransformerMixin, BaseEstimator):
   """
 
   def __init__(self,
-               bids_dir=Path('data/julia2018'),
                atlas_name='cort-maxprob-thr25-2mm',
+               bids_dir=Path('data/julia2018'),
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
                cache_folder=Path('data/julia2018_resting'),

@@ -5,7 +5,7 @@ from ..connectome import ExtraConnectivityMeasure
 
 
 class ConnectivityExtractor(TransformerMixin, BaseEstimator):
-  def __init__(self, kind='correlation') -> None:
+  def __init__(self, kind='correlation', verbose=0) -> None:
     self.conn_estimator = ExtraConnectivityMeasure(kind=kind, vectorize=False)
     super().__init__()
 

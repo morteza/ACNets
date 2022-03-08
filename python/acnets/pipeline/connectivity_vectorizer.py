@@ -5,24 +5,44 @@ import numpy as np
 
 
 class ConnectivityVectorizer(TransformerMixin, BaseEstimator):
-  def __init__(self, discard_diagonal=False, discard_tril=True) -> None:
+  def __init__(self,
+               discard_tril=True,
+               discard_diagonal=False,
+               only_diagonal=False):
     self.discard_tril = discard_tril
+    self.only_diagonal = only_diagonal
+    self.dicard_diagonal = discard_diagonal
     self.k = 1 if discard_diagonal else 0
+
+    if only_diagonal and discard_diagonal:
+      raise ValueError('Cannot keep diagonal values while discarding them.')
+
     super().__init__()
 
   def fit(self, X, y=None, **fit_params):  # noqa: N803
     return self
 
   def transform(self, X):  # noqa: N803
-    if X.ndim != 2:
-      raise ValueError('Input must be a 2D array.')
+    if X.ndim not in [2, 3]:
+      raise ValueError('Input must be a 2D array of shape (regions, regions)'
+                       ' or 3D array of shape (subjects, regions, regions).')
 
-    if X.shape[0] != X.shape[1]:
-      raise ValueError('Input must be a square array.')
+    if X.ndim == 2:
+      X_vec = self._vectorize_single_subject(X)
+    elif X.ndim == 3:
+      X_vec = np.array([self._vectorize_single_subject(X_subj) for X_subj in X])
 
-    if self.discard_tril:
-      X_vec = X[np.triu_indices(X.shape[0], k=self.k)]
+    return X_vec
+
+  def _vectorize_single_subject(self, X_subj):  # noqa: N803
+    if X_subj.shape[0] != X_subj.shape[1]:
+      raise ValueError('Connectivity matrix must be a square array.')
+
+    if self.only_diagonal:
+      X_vec = X_subj.diagonal()
+    elif self.discard_tril:
+      X_vec = X_subj[np.triu_indices(X_subj.shape[0], k=self.k)]
     else:
-      X_vec = X.flatten()
+      X_vec = X_subj.flatten()
 
     return X_vec
