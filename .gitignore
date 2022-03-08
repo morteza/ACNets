@@ -144,7 +144,7 @@ cython_debug/
 .Rproj.user
 
 # VS Code
-.vscode/
+# .vscode/
 
 # Test/QC/etc reports
 outputs/reports/
