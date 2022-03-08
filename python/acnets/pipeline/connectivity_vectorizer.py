@@ -10,6 +10,7 @@ class ConnectivityVectorizer(TransformerMixin, BaseEstimator):
                discard_diagonal=False,
                only_diagonal=False):
     self.discard_tril = discard_tril
+    self.discard_diagonal = discard_diagonal
     self.only_diagonal = only_diagonal
     self.dicard_diagonal = discard_diagonal
     self.k = 1 if discard_diagonal else 0
