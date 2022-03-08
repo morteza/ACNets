@@ -27,21 +27,20 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
   def __init__(self,
                atlas_name='cort-maxprob-thr25-2mm',
-               bids_dir=Path('data/julia2018'),
+               bids_dir='data/julia2018',
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
-               cache_folder=Path('data/julia2018_resting'),
+               cache_folder='data/julia2018_resting',
                verbose=0) -> None:
 
+    self.bids_dir = bids_dir
     self.dataset: xr.Dataset = None
-
     self.verbose = verbose
     self.atlas_name = atlas_name
     self.cache_folder = cache_folder
     self.denoise_strategy = denoise_strategy
-    self.bids_dir = Path(bids_dir)
 
-    self.fmriprep_dir = self.bids_dir / 'derivatives/fmriprep'
+    self.fmriprep_dir = Path(self.bids_dir) / 'derivatives/fmriprep'
     self.fmriprep_bids_space = fmriprep_bids_space
 
     # validation (TODO more them to a function)
@@ -133,6 +132,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     })
 
     # participants dataset
+    # TODO path to the bids must be used here
     bids_participants = pd.read_csv('data/julia2018/participants.tsv', sep='\t')
     bids_participants.rename(columns={'participant_id': 'subject'}, inplace=True)
     # remove "sub-" prefix
@@ -180,4 +180,10 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if not self.dataset:
       raise ValueError('Parcellation has not been fitted yet.')
 
-    return self.dataset['timeseries'].values
+    ds = self.dataset
+
+    if X is not None:
+      ds = ds.sel(dict(subject=X))
+
+    timeseries = ds['timeseries'].values
+    return timeseries
