@@ -5,7 +5,7 @@ import pandas as pd
 
 
 __supported_parcellations = [
-    'dosenbach2007', 'dosenbach2010', 'difumo_64_2', 'difumo_128_2', 'difumo_1024_2',]
+    'dosenbach2007', 'dosenbach2010', 'difumo_64_2mm', 'difumo_128_2mm', 'difumo_1024_2mm',]
 
 __supported_kinds = [
     'tangent', 'precision', 'correlation', 'covariance', 'partial_correlation',

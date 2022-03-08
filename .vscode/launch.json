@@ -9,9 +9,9 @@
       "purpose": ["debug-test"],
       "justMyCode": false,
       "cwd": "${workspaceFolder}",
-      "args": [
-        "--no-cov"
-      ]
-  }
+      "env": {
+        "PYTEST_ADDOPTS": "--no-cov",
+      }
+    }
   ]
 }
