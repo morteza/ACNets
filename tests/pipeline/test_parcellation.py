@@ -2,10 +2,22 @@ import pytest
 from python.acnets.pipeline.parcellation import Parcellation
 
 
-@pytest.mark.parametrize('dimension', [64, 128])
-@pytest.mark.parametrize('resolution_mm', [2])
-def test_difumo_parcellation(dimension, resolution_mm):
-  atlas_name = f'difumo_{dimension}_{resolution_mm}'
+@pytest.mark.parametrize('atlas_name,expected_regions_dim', [
+    ('cort-maxprob-thr0-1mm', 48),
+    ('cort-maxprob-thr25-2mm', 48),
+    ('cort-maxprob-thr25-1mm', 48),
+    ('dosenbach2007', 39),
+    ('dosenbach2010', 160),
+    ('difumo_64_2mm', 64),
+    ('difumo_128_2mm', 128)])
+def test_parcellation(atlas_name, expected_regions_dim):
 
-  dataset = Parcellation(atlas_name=atlas_name).fit().dataset
-  assert dataset['timeseries'].shape == (34, dimension, 125)
+  n_timepoints = 124
+  n_subjects = 32
+
+  if 'difumo' in atlas_name:
+    n_regions_in_label = int(atlas_name.split('_')[1])
+    assert n_regions_in_label == expected_regions_dim
+
+  dataset = Parcellation(atlas_name=atlas_name, verbose=1).fit().dataset
+  assert dataset['timeseries'].shape == (n_subjects, n_timepoints, expected_regions_dim)

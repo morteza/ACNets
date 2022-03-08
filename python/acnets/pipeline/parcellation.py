@@ -114,20 +114,20 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     return _timeseries, atlas_labels
 
-  def create_dataset(self, atlas_labels, time_series=None):
+  def create_dataset(self, atlas_labels, timeseries=None):
 
     # dims: (n_subjects, n_timepoints, n_regions)
-    _time_series_arr = np.stack(list(time_series.values()))
-    preprocessed_subjects = list(time_series.keys())
+    _timeseries_arr = np.stack(list(timeseries.values()))
+    preprocessed_subjects = list(timeseries.keys())
 
     # atlas dataset
     atlas_ds = atlas_labels.to_xarray()
 
     # time-series dataset
-    time_series_ds = xr.Dataset({
-        'timeseries': (['subject', 'timepoint', 'region'], _time_series_arr)
+    timeseries_ds = xr.Dataset({
+        'timeseries': (['subject', 'timepoint', 'region'], _timeseries_arr)
     }, coords={
-        'timepoint': np.arange(1, _time_series_arr.shape[1] + 1),
+        'timepoint': np.arange(1, _timeseries_arr.shape[1] + 1),
         'region': atlas_labels.index,
         'subject': preprocessed_subjects,
     })
@@ -142,7 +142,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     participants_ds = bids_participants.to_xarray()
 
     # merge arrays into a single dataset
-    _ds = xr.merge([time_series_ds, participants_ds, atlas_ds])
+    _ds = xr.merge([timeseries_ds, participants_ds, atlas_ds])
 
     return _ds
 
@@ -172,6 +172,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
       img_files, mask_files = self.get_fmriprep_files()
       time_series, atlas_labels = self.extract_timeseries(img_files, mask_files, self.atlas_name)
       self.dataset = self.create_dataset(atlas_labels, time_series)
+      self.cache_dataset(overwrite=False)
 
     return self
 

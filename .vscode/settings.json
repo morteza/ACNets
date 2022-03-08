@@ -1,14 +1,14 @@
 {
   "python.defaultInterpreterPath": "/usr/local/Caskroom/miniforge/base/envs/acnets/bin/python",
   "python.testing.pytestArgs": [
-    "tests", "--no-cov"
+    "tests"
   ],
   "python.testing.unittestEnabled": true,
   "python.testing.pytestEnabled": true,
   "python.analysis.extraPaths": [
     "python"
 ],
-"jupyter.jupyterServerType": "remote",
+"jupyter.jupyterServerType": "local",
 "jupyter.jupyterCommandLineArguments": [],
 // "jupyter.notebookFileRoot": "${fileDirname}",
 "jupyter.notebookFileRoot": "${workspaceFolder}",

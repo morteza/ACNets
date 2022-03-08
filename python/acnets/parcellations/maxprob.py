@@ -1,6 +1,7 @@
 import pandas as pd
 from nilearn import datasets, maskers
 
+
 def load_masker(atlas_name, mask_img):
   atlas = datasets.fetch_atlas_harvard_oxford(atlas_name)
   atlas_labels_img = atlas.maps
