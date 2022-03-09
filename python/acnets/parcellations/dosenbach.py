@@ -78,4 +78,5 @@ def load_dosenbach2010_masker(t_r=None):
   atlas_labels.rename(columns={0: 'region'}, inplace=True)
   atlas_labels.set_index('region', inplace=True)
 
+  # TODO return Bunch instead
   return masker, atlas_labels

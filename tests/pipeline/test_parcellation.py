@@ -9,7 +9,8 @@ from python.acnets.pipeline.parcellation import Parcellation
     ('dosenbach2007', 39),
     ('dosenbach2010', 160),
     ('difumo_64_2mm', 64),
-    ('difumo_128_2mm', 128)])
+    ('difumo_128_2mm', 128),
+    ('gordon2014_2mm', 333)])
 def test_parcellation(atlas_name, expected_regions_dim):
 
   n_timepoints = 124

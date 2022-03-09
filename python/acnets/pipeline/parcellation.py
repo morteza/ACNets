@@ -10,14 +10,15 @@ from nilearn import datasets as nilearn_datasets
 from nilearn import plotting as nilearn_plotting
 from nilearn import maskers
 from tqdm import tqdm
-import logging
 
-from ..parcellations import maxprob, dosenbach, difumo
+
+from ..parcellations import maxprob, dosenbach, difumo, gordon
 
 _masker_funcs = {
     'cort-maxprob': maxprob.load_masker,
     'difumo': difumo.load_masker,
     'dosenbach': dosenbach.load_masker,
+    'gordon': gordon.load_masker,
 }
 
 
@@ -153,7 +154,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if not self.cache_folder:
       raise ValueError('No cache_folder is set.')
 
-    cached_ds_path = self.cache_folder / f'timeseries_{self.atlas_name}.nc'
+    cached_ds_path = Path(self.cache_folder) / f'timeseries_{self.atlas_name}.nc'
 
     if overwrite or not cached_ds_path.exists():
       self.dataset.to_netcdf(cached_ds_path, engine='netcdf4')
