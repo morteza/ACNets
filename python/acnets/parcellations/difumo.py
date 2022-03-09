@@ -29,4 +29,5 @@ def load_masker(atlas_name: str, mask_img):
   atlas_labels.drop(columns=['component'], inplace=True)
   atlas_labels.index.name = 'region'
 
+  # TODO return Bunch instead
   return masker, atlas_labels

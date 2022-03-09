@@ -16,4 +16,5 @@ def load_masker(atlas_name, mask_img):
   atlas_labels = pd.DataFrame(atlas.labels, columns=['region'])
   atlas_labels = atlas_labels.drop(index=[0]).set_index('region')
 
+  # TODO return Bunch instead
   return masker, atlas_labels
