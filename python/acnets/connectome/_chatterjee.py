@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def chatterjee_xicoef(X: list[np.ndarray]) -> np.ndarray:
+def chatterjee_xicoef(X: list) -> np.ndarray:
   """Fast Chatterjee Xi correlation coefficient.
 
   References:
