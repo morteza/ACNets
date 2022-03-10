@@ -6,9 +6,6 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from pathlib import Path
 from nilearn.interfaces.bids import get_bids_files
 from nilearn.interfaces.fmriprep import load_confounds_strategy
-from nilearn import datasets as nilearn_datasets
-from nilearn import plotting as nilearn_plotting
-from nilearn import maskers
 from tqdm import tqdm
 
 
@@ -35,25 +32,32 @@ class Parcellation(TransformerMixin, BaseEstimator):
                verbose=0) -> None:
 
     self.bids_dir = bids_dir
-    self.dataset: xr.Dataset = None
     self.verbose = verbose
     self.atlas_name = atlas_name
     self.cache_folder = cache_folder
     self.denoise_strategy = denoise_strategy
 
-    self.fmriprep_dir = Path(self.bids_dir) / 'derivatives/fmriprep'
+    self.dataset_: xr.Dataset = None
+    self.labels_ = None
+    self.masker_ = None
+
+    self.fmriprep_dir_ = Path(self.bids_dir) / 'derivatives/fmriprep'
     self.fmriprep_bids_space = fmriprep_bids_space
 
     # validation (TODO more them to a function)
-    if not self.cache_folder and not self.fmriprep_dir.exists():
+    if not self.cache_folder and not self.fmriprep_dir_.exists():
       raise ValueError('Neither BIDS dataset exists nor cached dataset is set.')
+
+    for key, func in _masker_funcs.items():
+      if re.match(key, atlas_name):
+        self._load_masker = func
 
     super().__init__()
 
-  def get_fmriprep_files(self):
+  def _get_fmriprep_files(self):
     # RESTING SCANS
     img_files = get_bids_files(
-        self.fmriprep_dir,
+        self.fmriprep_dir_,
         file_tag='bold',
         modality_folder='func',
         filters=[('ses', 'rest'),
@@ -63,7 +67,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     # BRAIN MASKS
     mask_files = get_bids_files(
-        self.fmriprep_dir,
+        self.fmriprep_dir_,
         file_tag='mask',
         modality_folder='func',
         filters=[('ses', 'rest'),
@@ -73,15 +77,9 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     return img_files, mask_files
 
-  def load_masker(self, atlas_name, mask_img):
-
-    for key, func in _masker_funcs.items():
-      if re.match(key, atlas_name):
-        masker, atlas_labels = func(atlas_name, mask_img)
-        return masker, atlas_labels
-
-    # none of the atlases matched.
-    raise ValueError('Atlas name {} not recognized.'.format(atlas_name))
+  def _load_masker(self, atlas_name, mask_file):
+    # default implementation when none of the atlases matched in the __init__.
+    raise NotImplementedError('Atlas name {} not recognized.'.format(self.atlas_name))
 
   def extract_timeseries(self, img_files, mask_files, atlas_name):
 
@@ -104,31 +102,31 @@ class Parcellation(TransformerMixin, BaseEstimator):
     for img, mask, confound, sample_mask in img_iterator:
 
       subject = re.search('func/sub-(.*)_ses', img)[1]
-      masker, atlas_labels = self.load_masker(atlas_name, mask)
-      ts = masker.fit_transform(img, confound, sample_mask)
+      self.masker_, self.labels_ = self._load_masker(atlas_name, mask)
+      ts = self.masker.fit_transform(img, confound, sample_mask)
 
       if ts.shape[0] > len(valid_timepoints):
         ts = ts[timepoints_mask]
 
       _timeseries[subject] = ts
 
-    return _timeseries, atlas_labels
+    return _timeseries
 
-  def create_dataset(self, atlas_labels, timeseries=None):
+  def create_dataset(self, timeseries=None):
 
     # dims: (n_subjects, n_timepoints, n_regions)
     _timeseries_arr = np.stack(list(timeseries.values()))
     preprocessed_subjects = list(timeseries.keys())
 
     # atlas dataset
-    atlas_ds = atlas_labels.to_xarray()
+    atlas_ds = self.labels.to_xarray()
 
     # time-series dataset
     timeseries_ds = xr.Dataset({
         'timeseries': (['subject', 'timepoint', 'region'], _timeseries_arr)
     }, coords={
         'timepoint': np.arange(1, _timeseries_arr.shape[1] + 1),
-        'region': atlas_labels.index,
+        'region': self.labels.index,
         'subject': preprocessed_subjects,
     })
 
@@ -148,7 +146,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     return _ds
 
   def cache_dataset(self, overwrite=False):
-    if not self.dataset:
+    if not self.dataset_:
       raise ValueError('Parcellation has not been fitted yet.')
 
     if not self.cache_folder:
@@ -157,7 +155,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     cached_ds_path = Path(self.cache_folder) / f'timeseries_{self.atlas_name}.nc'
 
     if overwrite or not cached_ds_path.exists():
-      self.dataset.to_netcdf(cached_ds_path, engine='netcdf4')
+      self.dataset_.to_netcdf(cached_ds_path, engine='netcdf4')
 
   def fit(self, X=None, y=None, **fit_params):  # noqa: N803
 
@@ -165,23 +163,23 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if self.cache_folder:
       cached_ds_path = Path(self.cache_folder) / f'timeseries_{self.atlas_name}.nc'
       if cached_ds_path.exists():
-        self.dataset = xr.open_dataset(cached_ds_path)
+        self.dataset_ = xr.open_dataset(cached_ds_path)
         return self
 
     # fit if not already fitted
-    if not self.dataset:
-      img_files, mask_files = self.get_fmriprep_files()
-      time_series, atlas_labels = self.extract_timeseries(img_files, mask_files, self.atlas_name)
-      self.dataset = self.create_dataset(atlas_labels, time_series)
+    if not self.dataset_:
+      img_files, mask_files = self._get_fmriprep_files()
+      time_series = self.extract_timeseries(img_files, mask_files, self.atlas_name)
+      self.dataset_ = self.create_dataset(time_series)
       self.cache_dataset(overwrite=False)
 
     return self
 
   def transform(self, X=None):  # noqa: N803
-    if not self.dataset:
+    if not self.dataset_:
       raise ValueError('Parcellation has not been fitted yet.')
 
-    ds = self.dataset
+    ds = self.dataset_
 
     if X is not None:
       ds = ds.sel(dict(subject=X))
