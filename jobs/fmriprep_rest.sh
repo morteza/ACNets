@@ -13,12 +13,12 @@
 
 # job parameters
 JOB_NAME=fmriprep_rest
-DATASET=julia2018_datalad_v2020.11.8
+DATASET=julia2018
 RANDOM_SEED=42
 
-PROJECT_DIR=/work/projects/acnets/
-INPUT_DIR=${SCRATCH}${DATASET}
-OUTPUT_DIR=${PROJECT_DIR}derivatives/$JOB_NAME
+PROJECT_DIR=/work/projects/acnets/repositories/acnets
+BIDS_DIR=${PROJECT_DIR}/data/${DATASET}
+OUTPUT_DIR=${BIDS_DIR}/derivatives/$JOB_NAME
 TMP_WORK_DIR=${SCRATCH}fmriprep_work
 
 
@@ -37,31 +37,16 @@ date
 echo "Slurm job ID: " $SLURM_JOB_ID
 
 
-# prepare dataset and work dir
-if [ ! -d $SCRATCH/$DATASET ]; then
-    tar xjf ${PROJECT_DIR}backup/datasets/$DATASET.tar.bz2 -C $SCRATCH
-fi
-
-
 # create temp working dir
 mkdir -p $TMP_WORK_DIR
 mkdir -p $OUTPUT_DIR
 
-
-# to avoid unexpected results, only create fmriprep SIF if it does not already exist
-if [ ! -f ${SCRATCH}fmriprep_latest.simg ]; then
-    singularity build \
-        ${SCRATCH}fmriprep_latest.simg \
-        docker://poldracklab/fmriprep:latest
-fi
-
-
 # run fmriprep
 singularity run --cleanenv \
-    -B $INPUT_DIR:/inputs \
-    -B $OUTPUT_DIR:/outputs \
-    -B $SCRATCH \
-    $SCRATCH/fmriprep_latest.simg \
+    --bind $BIDS_DIR:/inputs \
+    --bind $OUTPUT_DIR:/outputs \
+    --bind $SCRATCH \
+    docker://nipreps/mriqc:latest \
     --mem 32GB --n-cpus 16 --omp-nthreads 16 \
     --fs-license-file $HOME/freesurfer_license.txt \
     --work-dir $TMP_WORK_DIR \

@@ -14,7 +14,7 @@ cd /work/project/acnets/repositories
 git clone ssh://git@gitlab.uni.lu:8022/xcit/brain-imaging/acnets.git & cd acnets/
 
 cd data/
-datalad clone ria+ssh://iris-cluster:/work/projects/acnets/backup/datalad_riastore#~julia2018
+datalad clone ria+ssh://localhost:/work/projects/acnets/backup/datalad_riastore#~julia2018
 cd julia2018/
 datalad get ./*
 datalad unlock ./*
