@@ -9,13 +9,13 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=morteza.ansarinia@uni.lu
 
-REPO_DIR = /work/projects/acnets/repositories/acnets
+REPO_DIR="/work/projects/acnets/repositories/acnets"
 
 module purge
 module load tools/Singularity
 
-INPUT=${REPO_DIR}/data/julia2018/
-OUTPUT=${REPO_DIR}/data/julia2018/derivatives/mriqc/
+INPUT="${REPO_DIR}/data/julia2018/"
+OUTPUT="${REPO_DIR}/data/julia2018/derivatives/mriqc/"
 
 mkdir -p $OUTPUT
 
