@@ -12,11 +12,15 @@
 module purge
 module load tools/Singularity
 
-# FIXME: this is invalid now, use archived version of the dataset (see other jobs for some examples)
 input=/work/projects/acnets/backup/julia2018/
 output=/work/projects/acnets/derivatives/mriqc/julia2018/
+
 singularity exec \
     docker://nipreps/mriqc:latest mriqc \
-    $input $output participant \
-    --no-sub
+    $input $output participant --no-sub
+    # -m T1w
+
+singularity exec \
+    docker://nipreps/mriqc:latest mriqc \
+    $input $output group --no-sub
     # -m T1w
