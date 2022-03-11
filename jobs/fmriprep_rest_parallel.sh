@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=fmriprep
 #SBATCH --array=0-9
-#SBATCH --output=/work/projects/acnets/logs/%x_%A_%a.out
+#SBATCH --output=/work/projects/acnets/logs/%x_%A_%a.log
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=24gb
@@ -54,7 +54,7 @@ mkdir -p $OUTPUT_DIR
 if [ ! -f ${SCRATCH}fmriprep_latest.simg ]; then
     singularity build \
         ${SCRATCH}fmriprep_latest.simg \
-        docker://poldracklab/fmriprep:latest
+        docker://nipreps/fmriprep:latest
 fi
 
 
