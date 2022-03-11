@@ -9,22 +9,26 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=morteza.ansarinia@uni.lu
 
-REPO_DIR="/work/projects/acnets/repositories/acnets"
 
 module purge
 module load tools/Singularity
 
-INPUT="${REPO_DIR}/data/julia2018/"
-OUTPUT="${REPO_DIR}/data/julia2018/derivatives/mriqc/"
+REPO_DIR="/work/projects/acnets/repositories/acnets"
+BIDS_DIR="${REPO_DIR}/data/julia2018/"
+OUTPUT_DIR="${REPO_DIR}/data/julia2018/derivatives/mriqc/"
 
-mkdir -p $OUTPUT
+mkdir -p $OUTPUT_DIR
 
-singularity exec \
-    docker://nipreps/mriqc:latest mriqc \
-    $INPUT $OUTPUT participant --no-sub
+singularity run \
+    --bind $BIDS_DIR:/bids_dir \
+    --bind $OUTPUT_DIR:/output_dir \
+    docker://nipreps/mriqc:latest \
+    /bids_dir /output_dir participant --no-sub
     # -m T1w
 
-singularity exec \
-    docker://nipreps/mriqc:latest mriqc \
-    $INPUT $OUTPUT group --no-sub
+singularity run \
+    --bind $BIDS_DIR:/bids_dir \
+    --bind $OUTPUT_DIR:/output_dir \
+    docker://nipreps/mriqc:latest \
+    /bids_dir /output_dir group --no-sub
     # -m T1w
