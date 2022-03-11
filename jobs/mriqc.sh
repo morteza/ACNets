@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=mriqc
+#SBATCH --partition=bigmem
 #SBATCH --output=/work/projects/acnets/logs/mriqc_%j.log
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
