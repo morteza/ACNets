@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=mriqc_t1w.job
-#SBATCH --output=/work/projects/acnets/logs/slurm_%j.out
+#SBATCH --output=/work/projects/acnets/logs/mriqc_%j.out
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=24gb
