@@ -46,7 +46,7 @@ singularity run --cleanenv \
     --bind $BIDS_DIR:/inputs \
     --bind $OUTPUT_DIR:/outputs \
     --bind $SCRATCH \
-    docker://nipreps/mriqc:latest \
+    docker://nipreps/fmriprep:latest \
     --mem 120GB --n-cpus 32 --omp-nthreads 32 \
     --fs-license-file $HOME/freesurfer_license.txt \
     --work-dir $TMP_WORK_DIR \
