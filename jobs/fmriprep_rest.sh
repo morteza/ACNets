@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #SBATCH --job-name=fmriprep
-#SBATCH --output=/work/projects/acnets/logs/%x_%j.out
+#SBATCH --output=/work/projects/acnets/logs/%x_%j.log
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=32gb
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=120gb
 #SBATCH --partition=bigmem
 #SBATCH --time=2-00:00:00
 #SBATCH --mail-type=ALL
@@ -47,7 +47,7 @@ singularity run --cleanenv \
     --bind $OUTPUT_DIR:/outputs \
     --bind $SCRATCH \
     docker://nipreps/mriqc:latest \
-    --mem 32GB --n-cpus 16 --omp-nthreads 16 \
+    --mem 120GB --n-cpus 32 --omp-nthreads 32 \
     --fs-license-file $HOME/freesurfer_license.txt \
     --work-dir $TMP_WORK_DIR \
     --notrack \
