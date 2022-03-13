@@ -52,6 +52,8 @@ singularity run --cleanenv \
     --work-dir $TMP_WORK_DIR \
     --notrack \
     --skull-strip-t1w skip \
+    --skip_bids_validation \
+    --task-id rest \
     --write-graph \
     --random-seed $RANDOM_SEED \
     /inputs /outputs participant \
