@@ -20,5 +20,7 @@ def test_parcellation(atlas_name, expected_regions_dim):
     n_regions_in_label = int(atlas_name.split('_')[1])
     assert n_regions_in_label == expected_regions_dim
 
-  dataset = Parcellation(atlas_name=atlas_name, verbose=1).fit().dataset
+  model = Parcellation(atlas_name=atlas_name, verbose=1).fit()
+  model.transform()
+  dataset = model.dataset_
   assert dataset['timeseries'].shape == (n_subjects, n_timepoints, expected_regions_dim)

@@ -29,6 +29,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
                cache_folder='data/julia2018_resting',
+               factorize_networks=False,
                verbose=0) -> None:
 
     self.bids_dir = bids_dir
@@ -36,6 +37,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     self.atlas_name = atlas_name
     self.cache_folder = cache_folder
     self.denoise_strategy = denoise_strategy
+    self.factorize_networks = factorize_networks
 
     self.dataset_: xr.Dataset = None
     self.labels_ = None
@@ -44,7 +46,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     self.fmriprep_dir_ = Path(self.bids_dir) / 'derivatives/fmriprep'
     self.fmriprep_bids_space = fmriprep_bids_space
 
-    # validation (TODO more them to a function)
+    # validation (TODO intergate all the validations in a single function)
     if not self.cache_folder and not self.fmriprep_dir_.exists():
       raise ValueError('Neither BIDS dataset exists nor cached dataset is set.')
 
@@ -176,6 +178,25 @@ class Parcellation(TransformerMixin, BaseEstimator):
     return self
 
   def transform(self, X=None):  # noqa: N803
+    """_summary_
+
+    Parameters
+    ----------
+    X : list, optional
+        list of participant ids to select (BIDS-compatible without `sub-` prefix), e.g.,
+        ['AVGP-01', 'NVGP-03'] returns two subjects. Passing `None` will return all
+        the subjects. Defaults to None.
+
+    Returns
+    -------
+    numpy.ndarray
+        time-series of shape (n_size, n_timepoints, n_regions).
+
+    Raises
+    ------
+    ValueError
+        call fit() before calling transform().
+    """
     if not self.dataset_:
       raise ValueError('Parcellation has not been fitted yet.')
 
