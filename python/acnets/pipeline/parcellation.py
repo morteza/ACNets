@@ -40,8 +40,6 @@ class Parcellation(TransformerMixin, BaseEstimator):
     self.factorize_networks = factorize_networks
 
     self.dataset_: xr.Dataset = None
-    self.labels_ = None
-    self.masker_ = None
 
     self.fmriprep_dir_ = Path(self.bids_dir) / 'derivatives/fmriprep'
     self.fmriprep_bids_space = fmriprep_bids_space
@@ -53,6 +51,8 @@ class Parcellation(TransformerMixin, BaseEstimator):
     for key, func in _masker_funcs.items():
       if re.match(key, atlas_name):
         self._load_masker = func
+
+    self.masker_, self.labels_ = self._load_masker(self.atlas_name, None)
 
     super().__init__()
 
@@ -104,8 +104,8 @@ class Parcellation(TransformerMixin, BaseEstimator):
     for img, mask, confound, sample_mask in img_iterator:
 
       subject = re.search('func/sub-(.*)_ses', img)[1]
-      self.masker_, self.labels_ = self._load_masker(atlas_name, mask)
-      ts = self.masker.fit_transform(img, confound, sample_mask)
+      self.masker_, _ = self._load_masker(atlas_name, mask)
+      ts = self.masker_.fit_transform(img, confound, sample_mask)
 
       if ts.shape[0] > len(valid_timepoints):
         ts = ts[timepoints_mask]
@@ -200,10 +200,11 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if not self.dataset_:
       raise ValueError('Parcellation has not been fitted yet.')
 
+    # FIXME
     ds = self.dataset_
-
-    if X is not None:
-      ds = ds.sel(dict(subject=X))
+    # if X is not None:
+    #   _subjects = X.reshape(-1).tolist()
+    #   ds = ds.sel(dict(subject=_subjects))
 
     timeseries = ds['timeseries'].values
     return timeseries
