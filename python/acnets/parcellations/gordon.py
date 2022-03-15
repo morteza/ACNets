@@ -55,7 +55,7 @@ def load_masker(atlas_name, mask_img, t_r=3.0):
 
     masker = maskers.NiftiLabelsMasker(
         atlas.maps,
-        labels=[str(lbl) for lbl in atlas.labels.index],
+        labels=['0'] + [str(lbl) for lbl in atlas.labels.index],
         mask_img=mask_img,
         detrend=True,
         standardize=True,
