@@ -2,6 +2,7 @@
 
 from sklearn.base import TransformerMixin, BaseEstimator
 import numpy as np
+import xarray as xr
 
 
 class ConnectivityVectorizer(TransformerMixin, BaseEstimator):
@@ -24,6 +25,10 @@ class ConnectivityVectorizer(TransformerMixin, BaseEstimator):
     return self
 
   def transform(self, X):  # noqa: N803
+
+    if isinstance(X, xr.DataArray):
+      X = X.values
+
     if X.ndim not in [2, 3]:
       raise ValueError('Input must be a 2D array of shape (regions, regions)'
                        ' or 3D array of shape (subjects, regions, regions).')
