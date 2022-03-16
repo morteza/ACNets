@@ -41,7 +41,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     self.dataset_: xr.Dataset = None
 
-    self.fmriprep_dir_ = Path(self.bids_dir) / 'derivatives/fmriprep'
+    self.fmriprep_dir_ = Path(self.bids_dir) / 'derivatives/fmriprep_2020'
     self.fmriprep_bids_space = fmriprep_bids_space
 
     # validation (TODO intergate all the validations in a single function)
