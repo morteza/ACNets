@@ -59,7 +59,7 @@ def load_masker(atlas_name, mask_img, t_r=3.0):
         mask_img=mask_img,
         # detrend=True,
         # standardize=True,
-        t_r=t_r,
+        # t_r=t_r,
         verbose=0)
 
     # TODO return Bunch instead

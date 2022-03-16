@@ -59,7 +59,7 @@ def load_dosenbach2010_masker(t_r=None):
       ordered_regions=True,
       legacy_format=False)
 
-  atlas_labels.pop('description', None)  
+  atlas_labels.pop('description', None)
   atlas_coords = atlas_labels['rois'].values
 
   masker = maskers.NiftiSpheresMasker(
@@ -67,10 +67,10 @@ def load_dosenbach2010_masker(t_r=None):
       smoothing_fwhm=6,
       radius=5,
       allow_overlap=False,
-      detrend=True,
-      standardize=True,
-      low_pass=0.08,
-      high_pass=0.009,
+      #   detrend=True,
+      #   standardize=True,
+      #   low_pass=0.08,
+      #   high_pass=0.009,
       t_r=t_r,
       verbose=0)
 

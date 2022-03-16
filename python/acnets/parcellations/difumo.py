@@ -3,7 +3,7 @@ import pandas as pd
 from nilearn import datasets, plotting, maskers
 
 
-def load_masker(atlas_name: str, mask_img):
+def load_masker(atlas_name: str, mask_img, t_r=3.0):
   dim, res = re.findall('difumo_(\\d{2,4})_(\\d)mm', atlas_name.lower())[0]
 
   atlas = datasets.fetch_atlas_difumo(
@@ -14,8 +14,9 @@ def load_masker(atlas_name: str, mask_img):
   masker = maskers.NiftiMapsMasker(
       atlas.maps,
       mask_img=mask_img,
-      detrend=True,
-      standardize=True,
+      #   detrend=True,
+      #   standardize=True,
+      t_r=t_r,
       verbose=0)
 
   atlas_labels = atlas.labels

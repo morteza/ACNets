@@ -121,14 +121,14 @@ class Parcellation(TransformerMixin, BaseEstimator):
     preprocessed_subjects = list(timeseries.keys())
 
     # atlas dataset
-    atlas_ds = self.labels.to_xarray()
+    atlas_ds = self.labels_.to_xarray()
 
     # time-series dataset
     timeseries_ds = xr.Dataset({
         'timeseries': (['subject', 'timepoint', 'region'], _timeseries_arr)
     }, coords={
         'timepoint': np.arange(1, _timeseries_arr.shape[1] + 1),
-        'region': self.labels.index,
+        'region': self.labels_.index,
         'subject': preprocessed_subjects,
     })
 
