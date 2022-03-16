@@ -4,7 +4,8 @@ from python.acnets.pipeline import NetworkAggregator
 
 
 @pytest.mark.parametrize('atlas_name', [
-    'gordon2014_2mm'
+    # 'gordon2014_2mm'
+    'difumo_64_2mm'
 ])
 def test_network_aggregator(atlas_name):
 

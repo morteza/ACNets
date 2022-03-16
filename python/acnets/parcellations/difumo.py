@@ -18,16 +18,19 @@ def load_masker(atlas_name: str, mask_img):
       standardize=True,
       verbose=0)
 
-  atlas_coordinates = (
-      plotting.find_probabilistic_atlas_cut_coords(maps_img=atlas.maps))
-  atlas_labels = pd.concat([atlas.labels, pd.DataFrame(atlas_coordinates)], axis=1)
+  atlas_labels = atlas.labels
+#   atlas_coordinates = plotting.find_probabilistic_atlas_cut_coords(maps_img=atlas.maps)
+#   atlas_labels = pd.concat([atlas.labels, pd.DataFrame(atlas_coordinates)], axis=1)
   atlas_labels.rename(columns={
       0: 'x',
       1: 'y',
       2: 'z'}, inplace=True)
 
   atlas_labels.drop(columns=['component'], inplace=True)
-  atlas_labels.index.name = 'region'
+  atlas_labels.rename(columns={
+      'difumo_names': 'region',
+      'yeo_networks7': 'network'}, inplace=True)
+  atlas_labels.set_index('region', inplace=True)
 
   # TODO return Bunch instead
   return masker, atlas_labels
