@@ -9,7 +9,7 @@ def load_masker(atlas_name, mask_img):
   masker = maskers.NiftiLabelsMasker(
       labels_img=atlas_labels_img,
       mask_img=mask_img,
-      standardize=True,
+      # standardize=True,
       #  memory='tmp/nilearn_cache',
       verbose=0)
 
