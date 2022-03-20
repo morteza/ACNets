@@ -4,7 +4,7 @@ import logging
 def get_tr(self, default=3.0):
   """ use pybids to extract TR from BIDS metadata.
 
-  Note:  if error occures while loadding the BIDS dataset, the default value will be returned.
+  Note:  if error occurs while loadding the BIDS dataset, the default value will be returned.
 
   Returns
   -------
