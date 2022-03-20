@@ -15,7 +15,7 @@ class NetworkAggregator(TransformerMixin, BaseEstimator):
       raise ValueError('atlas_labels must indexed by regions and have a column named "network"')
 
     self.atlas_labels = atlas_labels
-    self.networks_ = None
+    self.networks_ = list(self.atlas_labels.groupby('network').groups.keys())
 
     if method == 'mean':
       self.method = np.mean
@@ -37,9 +37,8 @@ class NetworkAggregator(TransformerMixin, BaseEstimator):
       regions_df = self.atlas_labels.copy()
       regions_df['timeseries'] = [x for x in X_subj.T]
       ts = regions_df.groupby('network')['timeseries'].apply(lambda ts: self.method(ts))
-      self.networks_ = ts.index
-      ts_net_arr = np.asarray(ts.to_list()).T
-      timeseries.append(ts_net_arr)
+      ts_arr = np.asarray(ts.to_list()).T
+      timeseries.append(ts_arr)
 
     self.timeseries_ = np.asarray(timeseries)
 
