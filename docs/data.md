@@ -19,7 +19,19 @@ DataLad offers several features, but they are beyond the scope of this document.
 
 ## Access Julia2018 dataset on HPC
 
-The following code clones *Julia2018* dataset from UNI.LU HPC into your local machine. Before running the code, you need to install `datalad` and `git` on your local machine, and properly ad `iris-cluster` to your ssh configuration.
+The following code clones *Julia2018* dataset from UNI.LU HPC into your local machine. Before running the code, you need to install `datalad` and `git` on your local machine, and properly configure your ssh.
+
+ First, you need to configure your SSH to access HPC via `iris-cluster` address by adding the following configs to the `~/.ssh/config` file. Replace <your_hpc_username> with your actual HPC username.
+
+```ssh-config
+Host iris-cluster
+  Hostname access-iris.uni.lu
+  User <your_hpc_username>
+  Port 8022
+  ForwardAgent no
+```
+
+And then, download the data:
 
 ```bash
 cd data/
