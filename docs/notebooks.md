@@ -1,11 +1,11 @@
 # Running notebooks on your local machine
 
-**:warning: please ignore this document if you already have your IDE set up to develop the ACNets project.**
+**:warning: please ignore this document if you already have your IDE ready.**
 
 
-You need Jupyter or Colab to run the notebooks locally, but before that make sure you have all the requirements installed and both `julia2018` and `dosenbach2007` datasets are properly downloaded into the `data/` directory. Here is the step-by-step instruction:
+You need Jupyter or Colab to run the notebooks locally, but before that make sure you have all the requirements installed and the `julia2018` dataset is properly downloaded into the `data/` directory. Here is the step-by-step instruction:
 
-1. Datasets are stored on UNI HPC. First, you need to configure your SSH to access HPC via `iris-cluster` address by adding the following configs to the `~/.ssh/config` file. Replace <your_hpc_username> with your actual HPC username.
+1. Large datasets are stored on UNI HPC. First, you need to configure your SSH to access HPC via `iris-cluster` address by adding the following configs to the `~/.ssh/config` file. Replace <your_hpc_username> with your actual HPC username.
 
 ```ssh-config
 Host iris-cluster
@@ -32,7 +32,8 @@ datalad clone ria+ssh://iris-cluster:/work/projects/acnets/backup/datalad_riasto
 3. Next, you need to install the required development packages:
 
 ```bash
-pip install -U -r requirements.txt
+conda env create --file environment.yml
+conda activate acnets
 ```
 
 1. (optional) And finally, run Jupyter and locate the `notebooks/` directory:
@@ -41,7 +42,7 @@ pip install -U -r requirements.txt
 jupyter notebook
 ```
 
-Now you are able to either use the Jupyter UI or connect Google Colab to your local machine.
+Now you are able to either use the Jupyter UI or connect Google Colab to your local machine. VSCode is however preferred as some configurations will be automatically set.
 
 
 ## FAQ
@@ -49,7 +50,7 @@ Now you are able to either use the Jupyter UI or connect Google Colab to your lo
 <details>
 
 <summary>
-<b>What is the <code>project_dir</code> variable in the notebooks?</b>
+<b>What is the <code>project_dir</code> variable in some notebooks?</b>
 </summary>
 
 It is used to access datasets and store outputs in appropriate places.
@@ -63,5 +64,5 @@ You can get rid of this relative variable by configuring jupyter to start in the
 "jupyter.notebookFileRoot": "${workspaceFolder}"
 ```
 
-Then it's always safe to set `project_dir = '.'` in any notebook.
+Then it's always safe to remove `project_dir` or set it to `'.'` in any notebooks.
 </details>
