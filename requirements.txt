@@ -1,4 +1,20 @@
-# WARNING: This `requirements.txt` file is not used by the build process.
+# WARNING: This `requirements.txt` file is not ddirectly used by the build process.
 # For compatibility, we use Conda to manage the environment and install the
 # requirements. See `environment.yml` for a list of required packages and installation
 # instruction.
+
+pybids
+flake8-todo
+pytest-plt
+#visbrain
+
+# deps for hyper-parameter optimization via Ray Tune
+scikit-optimize
+tune-sklearn
+ray[tune]
+ray[data]
+ray
+pyarrow
+
+# deps for Keras
+# scikeras

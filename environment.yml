@@ -43,9 +43,4 @@ dependencies:
   # - fmriprep-docker
 
   - pip:
-    - pybids
-    - flake8-todo
-    - pytest-plt
-    # - visbrain
-
     - -r requirements.txt
