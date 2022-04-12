@@ -54,7 +54,7 @@ def get_networks(features, parcellation):
   return networks
 
 
-def load_connectivity(
+def load_julia2018_connectivity(
     dataset='julia2018_resting',
     parcellation='dosenbach2007',
     kind='tangent',
