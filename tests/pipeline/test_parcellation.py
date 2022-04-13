@@ -7,6 +7,7 @@ from python.acnets.pipeline.parcellation import Parcellation
     ('cort-maxprob-thr25-2mm', 48),
     ('cort-maxprob-thr25-1mm', 48),
     ('dosenbach2007', 39),
+    ('seitzman2018', 300),
     ('dosenbach2010', 160),
     ('difumo_64_2mm', 64),
     ('difumo_128_2mm', 128),
