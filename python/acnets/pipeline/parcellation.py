@@ -9,13 +9,14 @@ from nilearn.interfaces.fmriprep import load_confounds_strategy
 from tqdm import tqdm
 
 
-from ..parcellations import maxprob, dosenbach, difumo, gordon
+from ..parcellations import maxprob, dosenbach, difumo, gordon, seitzman
 
 _masker_funcs = {
     'cort-maxprob': maxprob.load_masker,
     'difumo': difumo.load_masker,
     'dosenbach': dosenbach.load_masker,
     'gordon': gordon.load_masker,
+    'seitzman': seitzman.load_masker,
 }
 
 
