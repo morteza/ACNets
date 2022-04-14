@@ -29,24 +29,22 @@ class Parcellation(TransformerMixin, BaseEstimator):
                bids_dir='data/julia2018',
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
-               cache_folder='data/julia2018_resting',
-               factorize_networks=False,
+               cache_dir='data/julia2018_resting',
                verbose=0) -> None:
 
-    self.bids_dir = bids_dir
     self.verbose = verbose
     self.atlas_name = atlas_name
-    self.cache_folder = cache_folder
+    self.bids_dir = bids_dir
+    self.cache_dir = cache_dir
     self.denoise_strategy = denoise_strategy
-    self.factorize_networks = factorize_networks
 
     self.dataset_: xr.Dataset = None
 
-    self.fmriprep_dir_ = Path(self.bids_dir) / 'derivatives/fmriprep_2020'
+    self.fmriprep_dir_ = Path(self.bids_dir).expanduser() / 'derivatives/fmriprep_2020'
     self.fmriprep_bids_space = fmriprep_bids_space
 
     # validation (TODO intergate all the validations in a single function)
-    if not self.cache_folder and not self.fmriprep_dir_.exists():
+    if not self.cache_dir and not self.fmriprep_dir_.exists():
       raise ValueError('Neither BIDS dataset exists nor cached dataset is set.')
 
     for key, func in _masker_funcs.items():
@@ -67,6 +65,8 @@ class Parcellation(TransformerMixin, BaseEstimator):
                  ('space', self.fmriprep_bids_space),
                  ('desc', 'preproc')],
         file_type='nii.gz')
+
+    assert len(img_files) > 0, f'No resting scans found in {self.fmriprep_dir_}'
 
     # BRAIN MASKS
     mask_files = get_bids_files(
@@ -135,7 +135,8 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     # participants dataset
     # TODO path to the bids must be used here
-    bids_participants = pd.read_csv('data/julia2018/participants.tsv', sep='\t')
+    _bids_participants_path = Path(self.bids_dir).expanduser() / 'participants.tsv'
+    bids_participants = pd.read_csv(_bids_participants_path, sep='\t')
     bids_participants.rename(columns={'participant_id': 'subject'}, inplace=True)
     # remove "sub-" prefix
     bids_participants['subject'] = bids_participants['subject'].apply(lambda x: x.split('-')[1])
@@ -152,10 +153,10 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if not self.dataset_:
       raise ValueError('Parcellation has not been fitted yet.')
 
-    if not self.cache_folder:
-      raise ValueError('No cache_folder is set.')
+    if not self.cache_dir:
+      raise ValueError('`cache_dir` is not properly set.')
 
-    cached_ds_path = Path(self.cache_folder) / f'timeseries_{self.atlas_name}.nc'
+    cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc'
 
     if overwrite or not cached_ds_path.exists():
       self.dataset_.to_netcdf(cached_ds_path, engine='netcdf4')
@@ -163,8 +164,8 @@ class Parcellation(TransformerMixin, BaseEstimator):
   def fit(self, X=None, y=None, **fit_params):  # noqa: N803
 
     # load from cache
-    if self.cache_folder:
-      cached_ds_path = Path(self.cache_folder) / f'timeseries_{self.atlas_name}.nc'
+    if self.cache_dir:
+      cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc'
       if cached_ds_path.exists():
         self.dataset_ = xr.open_dataset(cached_ds_path)
         return self

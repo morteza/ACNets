@@ -3,6 +3,7 @@
 from sklearn.base import TransformerMixin, BaseEstimator
 import numpy as np
 import xarray as xr
+import pandas as pd
 
 
 class ConnectivityVectorizer(TransformerMixin, BaseEstimator):
@@ -52,3 +53,13 @@ class ConnectivityVectorizer(TransformerMixin, BaseEstimator):
       X_vec = X_subj.flatten()
 
     return X_vec
+
+  def get_feature_names_out(self, input_features):
+      sep = ' \N{left right arrow} '
+      feature_names = input_features.stack().to_frame().apply(lambda x:
+          sep.join(x.name) if x.name[0] != x.name[1] else x.name[0],
+          axis=1).unstack()
+      feature_names = self.transform(feature_names.values)
+      return feature_names
+
+  # DEBUG lbls = get_feature_labels('gordon2014_2mm', 'tangent', True)
