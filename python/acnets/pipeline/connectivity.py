@@ -72,7 +72,7 @@ class Connectivity(TransformerMixin, BaseEstimator):
 
         subjects = X
         if subjects is None:
-            subjects =  Parcellation(self.atlas).fit(None).dataset_['subject'].values
+            subjects = Parcellation(self.atlas).fit(None).dataset_['subject'].values
 
         n_features = n_features_dict[(self.atlas, self.agg_networks)]
 
@@ -86,7 +86,7 @@ class Connectivity(TransformerMixin, BaseEstimator):
                     'node': nodes},
             dims=['subject', 'node', 'node'],
             name='connectivity')
-                
+
         return self.dataset_
 
     def get_feature_names_out(self,
