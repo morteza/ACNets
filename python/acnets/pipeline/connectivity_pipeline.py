@@ -10,7 +10,7 @@ from os import PathLike
 
 
 @dataclass
-class Connectivity(TransformerMixin, BaseEstimator):
+class ConnectivityPipeline(TransformerMixin, BaseEstimator):
     """Parcellate regions, aggregate networks, and extract connectivity."""
 
     atlas: str = 'dosenbach2010'
