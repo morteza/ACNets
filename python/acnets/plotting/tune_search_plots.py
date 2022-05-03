@@ -1,6 +1,6 @@
 import pandas as pd
 import seaborn as sns
-from ..pipeline import Connectivity
+from ..pipeline import ConnectivityPipeline
 from sklearn.dummy import DummyClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 def _plot_chance_scores(X, y, cv):
     _chance_pipe = Pipeline([
-        ('connectivity', Connectivity(mock=True)),
+        ('connectivity', ConnectivityPipeline(mock=True)),
         ('clf', DummyClassifier(strategy='stratified'))
     ])
 
