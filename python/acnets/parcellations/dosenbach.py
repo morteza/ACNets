@@ -2,7 +2,7 @@ from nilearn import datasets, maskers
 import pandas as pd
 
 
-def load_masker(atlas_name, mask_img, t_r=3.0):
+def load_masker(atlas_name: str, mask_img=None, t_r=3.0):
   """
   Load a masker for the given atlas.
 
