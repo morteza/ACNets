@@ -1,10 +1,12 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from ..pipeline import ConnectivityPipeline
+from ray.tune.sklearn import TuneSearchCV
 from sklearn.dummy import DummyClassifier
-from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
-import matplotlib.pyplot as plt
+from sklearn.pipeline import Pipeline
+
+from ..pipeline import ConnectivityPipeline
 
 
 def _plot_chance_scores(X, y, cv):
@@ -17,7 +19,7 @@ def _plot_chance_scores(X, y, cv):
     # TODO plot shaded chance region again
 
 
-def plot_tune_search_scores(opt, X=None, y=None, cv=None, with_chance=False, show=True):
+def plot_scores(opt: TuneSearchCV, X=None, y=None, cv=None, with_chance=False, show=True):
     sns.set_style('ticks')
     sns.despine()
 
