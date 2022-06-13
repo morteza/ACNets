@@ -51,7 +51,7 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
             name='connectivity')
 
         # select only queried subjects
-        if X is not None:
+        if (X is not None) and (X is not 'all'):
             subjects_1d = X.reshape(-1).tolist()
             self.dataset_ = self.dataset_.sel(dict(subject=subjects_1d))
 
