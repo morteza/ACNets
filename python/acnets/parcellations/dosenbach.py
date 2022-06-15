@@ -55,12 +55,13 @@ def load_dosenbach2007_masker(atlas_labels_path='data/dosenbach2007/ROIs.csv', t
 
 
 def load_dosenbach2010_masker(t_r=None):
-  atlas_labels = datasets.fetch_coords_dosenbach_2010(
+  atlas = datasets.fetch_coords_dosenbach_2010(
       ordered_regions=True,
       legacy_format=False)
 
-  atlas_labels.pop('description', None)
-  atlas_coords = atlas_labels['rois'].values
+  atlas.pop('description', None)
+  atlas_coords = atlas['rois'].values
+  atlas['networks'] = atlas['networks'].reset_index()
 
   masker = maskers.NiftiSpheresMasker(
       seeds=atlas_coords,
@@ -74,14 +75,14 @@ def load_dosenbach2010_masker(t_r=None):
       t_r=t_r,
       verbose=0)
 
-  label_indices = atlas_labels['labels']
-
-  atlas_labels = pd.concat([pd.DataFrame(v) for _, v in atlas_labels.items()], axis=1)
+  atlas_labels = pd.concat([pd.DataFrame(v) for _, v in atlas.items()],
+                              ignore_index=False,
+                              axis=1)
 
   atlas_labels.rename(columns={0: 'region'}, inplace=True)
   atlas_labels.set_index('region', inplace=True)
 
-  atlas_labels = atlas_labels.reindex(label_indices)
+  atlas_labels = atlas_labels.reindex(atlas['labels'])
 
   # TODO return Bunch instead
   return masker, atlas_labels
