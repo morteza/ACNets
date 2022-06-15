@@ -74,9 +74,14 @@ def load_dosenbach2010_masker(t_r=None):
       t_r=t_r,
       verbose=0)
 
+  label_indices = atlas_labels['labels']
+
   atlas_labels = pd.concat([pd.DataFrame(v) for _, v in atlas_labels.items()], axis=1)
+
   atlas_labels.rename(columns={0: 'region'}, inplace=True)
   atlas_labels.set_index('region', inplace=True)
+
+  atlas_labels = atlas_labels.reindex(label_indices)
 
   # TODO return Bunch instead
   return masker, atlas_labels
