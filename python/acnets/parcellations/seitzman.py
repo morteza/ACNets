@@ -3,7 +3,7 @@ from sklearn.utils import Bunch
 from nilearn import datasets, maskers
 
 
-def load_masker(atlas_name: str, mask_img, t_r=3.0):
+def load_masker(atlas_name: str, mask_img=None, t_r=3.0):
 
     if atlas_name != 'seitzman2018':
         raise ValueError('`atlas_name` must be seitzman2018')
