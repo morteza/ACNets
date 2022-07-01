@@ -30,22 +30,22 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, X):
-        p = Parcellation(self.atlas,
-                         bids_dir=self.bids_dir,
-                         cache_dir=self.parcellation_cache_dir)
-        n = NetworkAggregator(p.labels_)
-        c = ConnectivityExtractor(self.kind)
+        self.p = Parcellation(self.atlas,
+                              bids_dir=self.bids_dir,
+                              cache_dir=self.parcellation_cache_dir)
+        self.n = NetworkAggregator(self.p.labels_)
+        self.c = ConnectivityExtractor(self.kind)
 
         if self.agg_networks:
-            conn = make_pipeline(p, n, c).fit_transform(X)
-            nodes = n.networks_
+            conn = make_pipeline(self.p, self.n, self.c).fit_transform(X)
+            nodes = self.n.networks_
         else:
-            conn = make_pipeline(p, c).fit_transform(X)
-            nodes = p.labels_.index.to_list()
+            conn = make_pipeline(self.p, self.c).fit_transform(X)
+            nodes = self.p.labels_.index.to_list()
 
         self.dataset_ = xr.DataArray(
             conn,
-            coords={'subject': p.dataset_['subject'],
+            coords={'subject': self.p.dataset_['subject'],
                     'node': nodes},
             dims=['subject', 'node', 'node'],
             name='connectivity')
