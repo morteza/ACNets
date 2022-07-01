@@ -24,4 +24,5 @@ def test_parcellation(atlas_name, expected_regions_dim):
   model = Parcellation(atlas_name=atlas_name, verbose=1).fit()
   model.transform()
   dataset = model.dataset_
+  # DEBUG model.labels_.to_csv('dosebach2010.csv')
   assert dataset['timeseries'].shape == (n_subjects, n_timepoints, expected_regions_dim)
