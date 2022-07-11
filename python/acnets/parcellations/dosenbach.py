@@ -76,8 +76,8 @@ def load_dosenbach2010_masker(t_r=None):
       verbose=0)
 
   atlas_labels = pd.concat([pd.DataFrame(v) for _, v in atlas.items()],
-                              ignore_index=False,
-                              axis=1)
+                           ignore_index=False,
+                           axis=1)
 
   atlas_labels.rename(columns={0: 'region'}, inplace=True)
   atlas_labels.set_index('region', inplace=True)
