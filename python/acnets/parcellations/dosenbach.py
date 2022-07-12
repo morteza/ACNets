@@ -56,7 +56,7 @@ def load_dosenbach2007_masker(atlas_labels_path='data/dosenbach2007/ROIs.csv', t
 
 def load_dosenbach2010_masker(t_r=None):
   atlas = datasets.fetch_coords_dosenbach_2010(
-      ordered_regions=True,
+      ordered_regions=False,
       legacy_format=False)
 
   atlas.pop('description', None)
