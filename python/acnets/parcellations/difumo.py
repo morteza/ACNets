@@ -28,10 +28,8 @@ def load_masker(atlas_name: str, mask_img, t_r=3.0):
       2: 'z'}, inplace=True)
 
   atlas_labels.drop(columns=['component'], inplace=True)
-  atlas_labels.rename(columns={
-      'difumo_names': 'region',
-      'yeo_networks7': 'network'}, inplace=True)
+  atlas_labels['network'] = atlas_labels['yeo_networks17']
+  atlas_labels.rename(columns={'difumo_names': 'region'}, inplace=True)
   atlas_labels.set_index('region', inplace=True)
 
-  # TODO return Bunch instead
   return masker, atlas_labels
