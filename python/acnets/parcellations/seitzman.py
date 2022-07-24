@@ -9,7 +9,7 @@ def load_masker(atlas_name: str, mask_img=None, t_r=3.0):
         raise ValueError('`atlas_name` must be seitzman2018')
 
     atlas = datasets.fetch_coords_seitzman_2018(
-        ordered_regions=True,
+        ordered_regions=False,
         legacy_format=False)
 
     atlas.pop('description', None)
@@ -28,12 +28,15 @@ def load_masker(atlas_name: str, mask_img=None, t_r=3.0):
         t_r=t_r,
         verbose=0)
 
-    atlas = pd.concat([
-        pd.DataFrame(v, columns=[k] if k!='rois' else v.columns) for k, v in atlas.items()
-    ], axis=1)
-    atlas.rename(
-        columns={'networks': 'network', 'regions': 'anatomical_region'},
-        inplace=True)
-    atlas.index.name = 'region'
 
-    return masker, atlas
+    atlas_labels = pd.concat(
+        [pd.DataFrame(v) for _, v in atlas.items()],
+        ignore_index=False,
+        axis=1)
+
+    atlas_labels.index.name = 'region'
+
+    atlas_labels.columns = ['x', 'y', 'z', 'radius', 'network', 'anatomical_region']
+    atlas_labels
+
+    return masker, atlas_labels
