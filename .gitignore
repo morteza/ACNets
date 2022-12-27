@@ -148,11 +148,17 @@ cython_debug/
 
 # Test/QC/etc reports
 outputs/reports/
+outputs/model_comparison/
+outputs/*.nc
+outputs/glm_reports/
+
+
 
 # Nilearn cache
 nilearn_cache/
 
 # temp
 tmp/
+
 ..bfg-report/
 auto_model/

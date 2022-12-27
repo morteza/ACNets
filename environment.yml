@@ -26,7 +26,6 @@ dependencies:
   - networkx
   - nipype
   - nilearn
-
   # there will be an incompatibility issue if it's install via pip
   - pandas
   # XGBoost classifier requires external libraries, don't use `xgboost` package.
@@ -37,10 +36,19 @@ dependencies:
   # UMAP requires Numba which requires numpy<=1.21.
   - umap-learn
   - shap
-
   - dcm2niix
   # - heudiconv=0.8.0
   # - fmriprep-docker
 
   - pip:
-    - -r requirements.txt
+    - pybids
+    - flake8-todo
+    - pytest-plt
+    # - visbrain
+    ## deps for hyper-parameter tuning via RayTune
+    - scikit-optimize
+    - tune-sklearn
+    - ray[tune]
+    - ray[data]
+    - ray
+    - pyarrow
