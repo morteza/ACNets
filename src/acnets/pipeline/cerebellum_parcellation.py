@@ -8,14 +8,16 @@ from nilearn.interfaces.bids import get_bids_files
 from nilearn.interfaces.fmriprep import load_confounds_strategy
 from tqdm import tqdm
 
-
 from ..parcellations import difumo
+
 
 class CerebellumParcellation(TransformerMixin, BaseEstimator):
   """ to parcellate activities given an atlas.
   """
 
   def __init__(self,
+               atlas_dimension,
+               atlas_resolution='2mm',
                bids_dir='data/julia2018',
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
@@ -26,6 +28,9 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
     self.bids_dir = bids_dir
     self.cache_dir = cache_dir
     self.denoise_strategy = denoise_strategy
+    self.atlas_name = 'difumo'
+    self.atlas_dimension = atlas_dimension
+    self.atlas_resolution = atlas_resolution
 
     self.dataset_: xr.Dataset = None
 
@@ -36,9 +41,9 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
     if not self.cache_dir and not self.fmriprep_dir_.exists():
       raise ValueError('Neither BIDS dataset exists nor cached dataset is set.')
 
-    self.masker_, self.labels_ = difumo.maskers(self.atlas_name, None)
+    self.masker_, self.labels_ = difumo.load_masker(f'{self.atlas_name}_{atlas_dimension}_{atlas_resolution}', None)
 
-    #TODO select only cerebellum
+    # TODO select only cerebellum
 
     super().__init__()
 
@@ -67,10 +72,6 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
 
     return img_files, mask_files
 
-  def _load_masker(self, atlas_name, mask_file):
-    # default implementation when none of the atlases matched in the __init__.
-    raise NotImplementedError('Atlas name {} not recognized.'.format(self.atlas_name))
-
   def extract_timeseries(self, img_files, mask_files, atlas_name):
 
     _timeseries = {}
@@ -92,7 +93,6 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
     for img, mask, confound, sample_mask in img_iterator:
 
       subject = re.search('func/sub-(.*)_ses', img)[1]
-      self.masker_, _ = self._load_masker(atlas_name, mask)
       ts = self.masker_.fit_transform(img, confound, sample_mask)
 
       if ts.shape[0] > len(valid_timepoints):
@@ -143,7 +143,7 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
     if not self.cache_dir:
       raise ValueError('`cache_dir` is not properly set.')
 
-    cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_cerebellum_{self.atlas_name}.nc'
+    cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_cerebellum_difumo_{self.atlas_dimension}.nc'
 
     if overwrite or not cached_ds_path.exists():
       self.dataset_.to_netcdf(cached_ds_path, engine='netcdf4')
@@ -152,7 +152,7 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
 
     # load from cache
     if self.cache_dir:
-      cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_cerebellum_{self.atlas_name}.nc'
+      cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_cerebellum_difumo_{self.atlas_dimension}.nc'
       if cached_ds_path.exists():
         self.dataset_ = xr.open_dataset(cached_ds_path)
         return self
