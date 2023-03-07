@@ -1,0 +1,7 @@
+[core]
+    autostage = true
+    analytics = false
+    remote = iris
+['remote "iris"']
+    url = ssh://iris-cluster/work/projects/acnets/datasets/acnets/dvc
+    port = 8022
