@@ -1,5 +1,5 @@
 import pytest
-from python.acnets.pipeline.parcellation import Parcellation
+from src.acnets.pipeline.parcellation import Parcellation
 
 
 @pytest.mark.parametrize('atlas_name,expected_regions_dim', [

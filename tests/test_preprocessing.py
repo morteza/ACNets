@@ -8,7 +8,7 @@ import sys
 def test_rest2bids(julia2018_raw_path, bids_path):
 
   # imports
-  from python.acnets.preprocessing import (Julia2018BehavioralPreprocessor,
+  from src.acnets.preprocessing import (Julia2018BehavioralPreprocessor,
                                           Julia2018RestingPreprocessor,
                                           Julia2018TaskPreprocessor)
 

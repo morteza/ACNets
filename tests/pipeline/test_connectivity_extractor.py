@@ -1,5 +1,5 @@
 import pytest
-from python.acnets.pipeline import Parcellation, ConnectivityExtractor
+from src.acnets.pipeline import Parcellation, ConnectivityExtractor
 
 
 # 'covariance', 'correlation', 'partial correlation',

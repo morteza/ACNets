@@ -2,7 +2,7 @@ import pytest
 
 
 def test_load_julia2018_connectivity(connectivity_parcellations, connectivity_measures):
-  from python.acnets.datasets import load_julia2018_connectivity
+  from src.acnets.datasets import load_julia2018_connectivity
 
   for p in connectivity_parcellations:
     for m in connectivity_measures:

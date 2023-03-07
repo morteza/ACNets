@@ -25,11 +25,11 @@ def data_path():
 
 @pytest.fixture
 def connectivity_parcellations():
-  from python.acnets.datasets import __supported_parcellations
+  from src.acnets.datasets import __supported_parcellations
   return __supported_parcellations
 
 
 @pytest.fixture
 def connectivity_measures():
-  from python.acnets.datasets import __supported_kinds
+  from src.acnets.datasets import __supported_kinds
   return __supported_kinds

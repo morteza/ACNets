@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
-from python.acnets.pipeline import ConnectivityVectorizer
-from python.acnets.pipeline import ConnectivityExtractor
-from python.acnets.pipeline import Parcellation
+from src.acnets.pipeline import ConnectivityVectorizer
+from src.acnets.pipeline import ConnectivityExtractor
+from src.acnets.pipeline import Parcellation
 
 
 @pytest.mark.parametrize('n_dim', [1, 2, 3, 10, 100])

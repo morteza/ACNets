@@ -1,6 +1,6 @@
 import pytest
-from python.acnets.pipeline import Parcellation
-from python.acnets.pipeline import NetworkAggregator
+from src.acnets.pipeline import Parcellation
+from src.acnets.pipeline import NetworkAggregator
 
 
 @pytest.mark.parametrize('atlas_name', [
