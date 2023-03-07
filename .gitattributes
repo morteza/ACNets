@@ -2,3 +2,4 @@ data/julia2018_resting/connectivity_*.nc filter=lfs diff=lfs merge=lfs -text
 data/julia2018_resting/timeseries_*.nc filter=lfs diff=lfs merge=lfs -text
 data/gordon2014/*.nii filter=lfs diff=lfs merge=lfs -text
 outputs/model_comparison/*.nc filter=lfs diff=lfs merge=lfs -text
+*.nc filter=lfs diff=lfs merge=lfs -text
