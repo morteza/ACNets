@@ -159,6 +159,9 @@ nilearn_cache/
 
 # temp
 tmp/
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 ..bfg-report/
 auto_model/
