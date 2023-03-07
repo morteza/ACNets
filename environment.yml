@@ -8,7 +8,7 @@ channels:
 dependencies:
   # DEV
   - python=3.9
-  - datalad
+  - dvc
   - pip
   - ipykernel
   - ipywidgets
@@ -45,10 +45,11 @@ dependencies:
     - flake8-todo
     - pytest-plt
     # - visbrain
-    ## deps for hyper-parameter tuning via RayTune
     - scikit-optimize
     - tune-sklearn
     - ray[tune]
     - ray[data]
     - ray
     - pyarrow
+    - pybids
+
