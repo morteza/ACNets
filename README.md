@@ -1,43 +1,31 @@
 # Attentional Control Networks
 
-ACNets aims to predict action video gaming experience from the resting-state fMRI data and interpret the results. Most of the analysis is implemented in the [notebooks/resting_state](notebooks/resting_state).
+ACNets aims to use resting-state fMRI to predict the habitual action video gaming experience by analyzing functional connectivity patterns of the brain networks.
 
-It was originally conceived as discovering control-related brain networks using both resting and task fMRI. See the [resources](#additional-resources) section below for details.
 
+
+ 
 ## Data
 
-All the raw and derivative datasets are stored in the [data/](data/) folder. Check the folder for a more detailed explanation on how we used HPC and DataLad to manage big datasets of this project.
+You can access all the necessary data through DVC. To download the data, model checkpoints, and outputs from [Uni.lu HPC](https://hpc.uni.lu), please use the following command:
 
+```bash
+dvc pull
+```
 
-## Additional Resources
-
-- [ACNets folder on GDrive](https://drive.google.com/drive/folders/1azOq3-tWNipn3vOrgbFzos4cJHOeBZKO?usp=sharing)
-
-- [Initial analysis plan](https://docs.google.com/document/d/17bTvlyH8pX1pIjn28PLyDpQGEmSQ2wki0fiB5TeDuaE/edit?usp=sharing) (Google Docs)
-
-- [Resting state analysis plan](https://docs.google.com/document/d/1gM5IVyKHw9-r9RDRjl158D-yEBbwWnYk1FNUBx_bVic/edit?usp=sharing) (Google Docs)
-
-### Replications
-
-During the initial phases of the project, we used the julia2018 dataset to test and  replicate some of the previous studies, mainly:
-
-- [dosenbach2007 replication notebooks](notebooks/replications/dosenbach2007/)
-
-- task-fMRI [föcker2018 replication notebooks](notebooks/replications/föcker2018/)
-
-They are now obsolete and archived.
+Upon completion, you should see the following folders: `data/`, `models/`, and `outputs/`.
 
 
 ## Development
 
 See the [development guide](docs/development.md).
 
-## Conventions
+### Conventions
 
-Don't hesitate to use [BIDS](https://bids-specification.readthedocs.io/en/stable/) to name data and folders.
+We highly recommend using [BIDS](https://bids-specification.readthedocs.io/en/stable/) to name data and folders. The codebase is also designed to be compatible with the [Behaverse Data Model](https://behaverse.github.io/data-model/).
 
-In addition to BIDS, the codebase is aimed to be compatible with the [xCIT style guide and Convention](https://).
 
 ## License
 
-This codebase, its project folder on Google Drive, and julia2018 dataset may contain sensitive and confidential materials. Please do not share them without a proper permit.
+Please note that this codebase and related datasets may contain sensitive and confidential materials. Therefore, it is essential not to share them without obtaining the necessary permit.
+
