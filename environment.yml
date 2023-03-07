@@ -9,6 +9,7 @@ dependencies:
   # DEV
   - python=3.9
   - dvc
+  - dvc-ssh
   - pip
   - ipykernel
   - ipywidgets
