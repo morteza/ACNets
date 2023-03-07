@@ -160,5 +160,7 @@ nilearn_cache/
 # temp
 tmp/
 
-..bfg-report/
-auto_model/
+# DVC-managed folders
+/data
+/models
+/outputs
