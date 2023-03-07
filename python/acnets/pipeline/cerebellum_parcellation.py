@@ -19,7 +19,7 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
                bids_dir='data/julia2018',
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
-               cache_dir='data/julia2018_resting',
+               cache_dir='data/julia2018/derivatives/resting_timeseries',
                verbose=0) -> None:
 
     self.verbose = verbose

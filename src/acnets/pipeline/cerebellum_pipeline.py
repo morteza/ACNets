@@ -20,7 +20,7 @@ class CerebellumPipeline(TransformerMixin, BaseEstimator):
 
     #  if you are using Ray Tune, set these params to absolute paths.
     bids_dir: PathLike = 'data/julia2018'
-    parcellation_cache_dir: PathLike = 'data/julia2018_resting'
+    parcellation_cache_dir: PathLike = 'data/julia2018/derivatives/resting_timeseries'
 
     def __post_init__(self):
         if self.mock:
