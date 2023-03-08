@@ -41,7 +41,9 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
     if not self.cache_dir and not self.fmriprep_dir_.exists():
       raise ValueError('Neither BIDS dataset exists nor cached dataset is set.')
 
-    self.masker_, self.labels_ = difumo.load_masker(f'{self.atlas_name}_{atlas_dimension}_{atlas_resolution}', None)
+    self.masker_, self.labels_ = difumo.load_masker(f'{self.atlas_name}_{atlas_dimension}_{atlas_resolution}',
+                                                    None,
+                                                    only_cerebellum=True)
 
     # TODO select only cerebellum
 
