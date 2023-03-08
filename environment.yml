@@ -7,50 +7,45 @@ channels:
   - conda-forge
 dependencies:
   # DEV
-  - python=3.9
+  - python<3.11
   - dvc
   - dvc-ssh
-  - pip
   - ipykernel
   - ipywidgets
-  - nbformat
   - flake8
-  - pep8-naming
-  - pytest
-  - pytest-cov
   - watermark
-
-  # the rest
-  - plotly
-  - seaborn
-  - fastcluster
-  - networkx
-  - nipype
-  - nilearn
-  # there will be an incompatibility issue if it's install via pip
-  - pandas
-  # XGBoost classifier requires external libraries, don't use `xgboost` package.
-  # - py-xgboost
-  # Install XArray and its dependencies
-  - xarray
-  - netCDF4     # required by xarray
-  # UMAP requires Numba which requires numpy<=1.21.
-  - umap-learn
-  - shap
-  - dcm2niix
+  # - dcm2niix
   # - heudiconv=0.8.0
   # - fmriprep-docker
-
+  - pip
   - pip:
-    - pybids
-    - flake8-todo
+    # XGBoost classifier requires external libraries, don't use `xgboost` package.
+    # - py-xgboost
+    # UMAP requires Numba which requires numpy<=1.21.
+    # - umap-learn
+    - pytest
+    - pytest-cov
     - pytest-plt
-    # - visbrain
-    - scikit-optimize
-    - tune-sklearn
-    - ray[tune]
-    - ray[data]
-    - ray
-    - pyarrow
+    - shap
+    # - plotly
+    - matplotlib
+    - seaborn
+    # - fastcluster
+    - networkx
+    # - nipype
+    - scikit-learn
+    - nilearn
+    - pandas
+    - xarray
+    - h5netcdf
+    - netCDF4
     - pybids
+    # - visbrain
+    # - scikit-optimize
+    # - tune-sklearn
+    # - ray[tune]
+    # - ray[data]
+    # - ray
+    # - pyarrow
+    # - pybids
 

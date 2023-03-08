@@ -13,7 +13,7 @@ from os import PathLike
 class CerebellumPipeline(TransformerMixin, BaseEstimator):
     """Parcellate regions, extract cerebellum, and calculate connectivity."""
 
-    difumo_dimension: int = 64
+    atlas_dimension: int = 64
     kind: str = 'tangent'
     agg_networks: bool = True
     mock: bool = False
@@ -31,7 +31,7 @@ class CerebellumPipeline(TransformerMixin, BaseEstimator):
 
     def transform(self, X):
         self.p = CerebellumParcellation(
-            self.difumo_dimension,
+            self.atlas_dimension,
             bids_dir=self.bids_dir,
             cache_dir=self.parcellation_cache_dir)
 

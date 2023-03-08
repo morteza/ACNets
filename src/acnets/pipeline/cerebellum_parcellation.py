@@ -16,7 +16,7 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
   """
 
   def __init__(self,
-               atlas_dimension,
+               atlas_dimension: int,
                atlas_resolution='2mm',
                bids_dir='data/julia2018',
                denoise_strategy='simple',
@@ -145,16 +145,16 @@ class CerebellumParcellation(TransformerMixin, BaseEstimator):
     if not self.cache_dir:
       raise ValueError('`cache_dir` is not properly set.')
 
-    cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_cerebellum_difumo_{self.atlas_dimension}.nc'
+    cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_cerebellum_difumo_{self.atlas_dimension}.nc5'
 
     if overwrite or not cached_ds_path.exists():
-      self.dataset_.to_netcdf(cached_ds_path, engine='netcdf4')
+      self.dataset_.to_netcdf(cached_ds_path, engine='h5netcdf')
 
   def fit(self, X=None, y=None, **fit_params):  # noqa: N803
 
     # load from cache
     if self.cache_dir:
-      cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_cerebellum_difumo_{self.atlas_dimension}.nc'
+      cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_cerebellum_difumo_{self.atlas_dimension}.nc5'
       if cached_ds_path.exists():
         self.dataset_ = xr.open_dataset(cached_ds_path)
         return self
