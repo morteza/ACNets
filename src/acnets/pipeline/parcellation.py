@@ -157,16 +157,16 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if not self.cache_dir:
       raise ValueError('`cache_dir` is not properly set.')
 
-    cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc'
+    cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
 
     if overwrite or not cached_ds_path.exists():
-      self.dataset_.to_netcdf(cached_ds_path, engine='netcdf4')
+      self.dataset_.to_netcdf(cached_ds_path, engine='h5netcdf')
 
   def fit(self, X=None, y=None, **fit_params):  # noqa: N803
 
     # load from cache
     if self.cache_dir:
-      cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc'
+      cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
       if cached_ds_path.exists():
         self.dataset_ = xr.open_dataset(cached_ds_path)
         return self
