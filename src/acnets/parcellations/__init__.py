@@ -1,4 +1,4 @@
-from . import difumo, dosenbach, maxprob, gordon, seitzman
+from . import difumo, dosenbach, maxprob, gordon, seitzman, friedman
 
 
 __all__ = [
@@ -7,4 +7,5 @@ __all__ = [
     'maxprob',
     'gordon',
     'seitzman',
+    'friedman'
 ]

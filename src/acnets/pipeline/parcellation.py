@@ -9,7 +9,7 @@ from nilearn.interfaces.fmriprep import load_confounds_strategy
 from tqdm import tqdm
 
 
-from ..parcellations import maxprob, dosenbach, difumo, gordon, seitzman
+from ..parcellations import maxprob, dosenbach, difumo, gordon, seitzman, friedman
 
 _masker_funcs = {
     'cort-maxprob': maxprob.load_masker,
@@ -17,6 +17,7 @@ _masker_funcs = {
     'dosenbach': dosenbach.load_masker,
     'gordon': gordon.load_masker,
     'seitzman': seitzman.load_masker,
+    'friedman': friedman.load_masker,
 }
 
 
@@ -29,7 +30,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
                bids_dir='data/julia2018',
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
-               cache_dir='data/julia2018_resting',
+               cache_dir='data/julia2018/derivatives/resting_timeseries/',
                verbose=0) -> None:
 
     self.verbose = verbose
