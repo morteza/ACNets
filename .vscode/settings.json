@@ -13,6 +13,8 @@
 // "jupyter.notebookFileRoot": "${fileDirname}",
 "jupyter.notebookFileRoot": "${workspaceFolder}",
 "cSpell.words": [
+  "acnets",
+  "AVGP",
   "binarization",
   "binarize",
   "connectome",
@@ -22,6 +24,8 @@
   "dosenbach",
   "Nifti",
   "pybids",
+  "Seitzman",
+  "SHAP",
   "thresholded",
   "triu",
   "vectorize",
