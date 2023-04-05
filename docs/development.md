@@ -2,14 +2,14 @@
 
 Before running notebooks or accessing the `acnets` package, you need to take care of a few things:
 
-1. **Prepare the environment**: ACNets requires Conda to manage dependencies. All the dependencies are listed in the `environment.yml`.
+1. **Prepare the environment**: ACNets requires Conda to manage dependencies. All the dependencies are listed in the `env.yml`.
 
 You need to create a Conda environment called `acnets` and install all the dependencies:
 
 ```bash
-conda env create --file environment.yml
+mamba env create --file env.yml
 conda activate acnets
-pip install -e .       # to install the `acnets` package
+# pip install -e .       # to install and develop the `acnets` package
 ```
 
 2. **Attach the datasets**: ACNets datasets are huge in size, thereby managed separately by DataLad. Look into the [data](../data/) directory for a more detailed explanation. To save space, install only the subset of the data that you are interested in.

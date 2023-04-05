@@ -32,7 +32,7 @@ datalad clone ria+ssh://iris-cluster:/work/projects/acnets/backup/datalad_riasto
 3. Next, you need to install the required development packages:
 
 ```bash
-conda env create --file environment.yml
+conda env create --file env.yml
 conda activate acnets
 ```
 
