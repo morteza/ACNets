@@ -1,4 +1,4 @@
-# Attentional Control Networks
+# ACNets
 
 ACNets aims to use resting-state fMRI to predict the habitual action video gaming experience by analyzing functional connectivity patterns of the brain networks.
 
@@ -19,10 +19,6 @@ Upon completion, you should see the following folders: `data/`, `models/`, and `
 ## Development
 
 See the [development guide](docs/development.md).
-
-### Conventions
-
-We highly recommend using [BIDS](https://bids-specification.readthedocs.io/en/stable/) to name data and folders. The codebase is also designed to be compatible with the [Behaverse Data Model](https://behaverse.github.io/data-model/).
 
 
 ## License
