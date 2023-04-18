@@ -181,7 +181,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     return self
 
   def transform(self, X=None):  # noqa: N803
-    """_summary_
+    """Extract parcellated time-series from the dataset.
 
     Parameters
     ----------
