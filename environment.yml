@@ -14,6 +14,8 @@ dependencies:
   - ipywidgets
   - flake8
   - watermark
+  - dvc
+  - dvc-ssh
   # - dcm2niix
   # - heudiconv=0.8.0
   # - fmriprep-docker
