@@ -8,5 +8,3 @@
 ['remote "aion"']
     url = ssh://aion-cluster/work/projects/acnets/datasets/acnets/dvc
     port = 8022
-['remote "dagshub"']
-    url = https://dagshub.com/morteza/ACNets.dvc
