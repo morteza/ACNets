@@ -1,4 +1,4 @@
-# Data
+# [OBSOLETE] Data
 
 The easiest way to access the ACNets datasets is via DataLad, which is a version control tool for data, built on top of git. DataLad provides a handy command line tool to download data, share it, and track changes.
 
@@ -17,7 +17,7 @@ DataLad offers several features, but they are beyond the scope of this document.
 6. And to export the whole dataset to an archive file, use `datalad export-archive -t tar -c bz2 ../dataset_vXXXX.YY.tar.bz2 --missing-content ignore`. Depending on the size of the dataset it takes a while to create the archive. Upon finishing the export, you can backup or share the archive file.
 
 
-## Access Julia2018 dataset on HPC
+## [OBSOLETE] Access Julia2018 dataset on HPC
 
 The following code clones *Julia2018* dataset from UNI.LU HPC into your local machine. Before running the code, you need to install `datalad` and `git` on your local machine, and properly configure your ssh.
 
@@ -69,7 +69,7 @@ datalad get derivatives/fmriprep_2020/sub-NVGP01
 Upon successful download, the content of all the files inside the respective folders will be available on your local machine.
 
 
-## FAQ
+## [OBSOLETE] FAQ
 <details>
 <summary><b>How can I edit the linked files?</b></summary>
 

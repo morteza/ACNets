@@ -1,5 +1,5 @@
 
-### Replications
+# [OBSOLETE] Replications
 
 During the initial phases of the project, we used the julia2018 dataset to test and replicate some of the previous studies, mainly:
 

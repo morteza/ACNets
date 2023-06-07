@@ -1,9 +1,9 @@
-# Running notebooks on your local machine
+# [OBSOLETE] Running notebooks on your local machine
 
 **:warning: please ignore this document if you already have your IDE ready.**
 
 
-You need Jupyter or Colab to run the notebooks locally, but before that make sure you have all the requirements installed and the `julia2018` dataset is properly downloaded into the `data/` directory. Here is the step-by-step instruction:
+You need Jupyter to run the notebooks locally, but before that make sure you have all the requirements installed and the `julia2018` dataset is properly downloaded into the `data/` directory. Here is the step-by-step instruction:
 
 1. Large datasets are stored on UNI HPC. First, you need to configure your SSH to access HPC via `iris-cluster` address by adding the following configs to the `~/.ssh/config` file. Replace <your_hpc_username> with your actual HPC username.
 
