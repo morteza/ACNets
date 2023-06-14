@@ -4,6 +4,8 @@ import xarray as xr
 from dataclasses import dataclass
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.pipeline import make_pipeline
+from typing import Literal
+
 
 from . import Parcellation, NetworkAggregator, ConnectivityExtractor
 from os import PathLike
@@ -15,7 +17,12 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
 
     atlas: str = 'dosenbach2010'
     kind: str = 'correlation'
-    agg_networks: bool = True
+    agg_method: Literal['region',
+                        'network',
+                        'random_network',
+                        'region_connectivity',
+                        'network_connectivity',
+                        'random_network_connectivity'] = 'network'
     mock: bool = False
 
     #  if you are using Ray Tune, set these params to absolute paths.
@@ -36,12 +43,28 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
         self.n = NetworkAggregator(self.p.labels_)
         self.c = ConnectivityExtractor(self.kind)
 
-        if self.agg_networks:
-            conn = make_pipeline(self.p, self.n, self.c).fit_transform(X)
-            nodes = self.n.networks_
-        else:
+        if self.agg_method == 'region':
             conn = make_pipeline(self.p, self.c).fit_transform(X)
             nodes = self.p.labels_.index.to_list()
+        elif self.agg_method == 'network':
+            conn = make_pipeline(self.p, self.n, self.c).fit_transform(X)
+            nodes = self.n.networks_
+        elif self.agg_method == 'random_network':
+            conn = make_pipeline(self.p, self.n, self.c).fit_transform(X)
+            nodes = self.n.networks_
+            raise NotImplementedError
+        elif self.agg_method == 'region_connectivity':
+            conn = make_pipeline(self.p, self.c).fit_transform(X)
+            nodes = self.p.labels_.index.to_list()
+            raise NotImplementedError
+        elif self.agg_method == 'network_connectivity':
+            conn = make_pipeline(self.p, self.n, self.c).fit_transform(X)
+            nodes = self.n.networks_
+            raise NotImplementedError
+        elif self.agg_method == 'random_network_connectivity':
+            conn = make_pipeline(self.p, self.n, self.c).fit_transform(X)
+            nodes = self.n.networks_
+            raise NotImplementedError
 
         self.dataset_ = xr.DataArray(
             conn,
@@ -60,14 +83,22 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
     def mock_transform(self, X):
 
         n_features_dict = {
-            ('gordon2014_2mm', True): 13,
-            ('gordon2014_2mm', False): 333,
-            ('dosenbach2010', True): 6,
-            ('dosenbach2010', False): 160,
-            ('difumo_64_2mm', True): 7,
-            ('difumo_64_2mm', False): 64,
-            ('seitzman2018', True): 14,
-            ('seitzman2018', False): 300,
+            ('gordon2014_2mm', 'region'): 333,
+            ('gordon2014_2mm', 'network'): 13,
+            ('gordon2014_2mm', 'region_connectivity'): 333,
+            ('gordon2014_2mm', 'network_connectivity'): 13,
+            ('dosenbach2010', 'region'): 160,
+            ('dosenbach2010', 'network'): 6,
+            ('dosenbach2010', 'region_connectivity'): 160,
+            ('dosenbach2010', 'network_connectivity'): 6,
+            ('difumo_64_2mm', 'region'): 64,
+            ('difumo_64_2mm', 'network'): 7,
+            ('difumo_64_2mm', 'region_connectivity'): 64,
+            ('difumo_64_2mm', 'network_connectivity'): 7,
+            ('seitzman2018', 'region'): 300,
+            ('seitzman2018', 'network'): 14,
+            ('seitzman2018', 'region_connectivity'): 300,
+            ('seitzman2018', 'network_connectivity'): 14,
         }
 
         subjects = X
