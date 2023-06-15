@@ -20,6 +20,7 @@
   "triu",
   "vectorize",
   "Vectorizer",
-  "xarray"
+  "xarray",
+  "timeseries"
 ]
 }
