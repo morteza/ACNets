@@ -16,15 +16,10 @@ class CerebellumPipeline(TransformerMixin, BaseEstimator):
     atlas_dimension: int = 64
     kind: str = 'tangent'
     agg_networks: bool = True
-    mock: bool = False
 
     #  if you are using Ray Tune, set these params to absolute paths.
     bids_dir: PathLike = 'data/julia2018'
     parcellation_cache_dir: PathLike = 'data/julia2018/derivatives/resting_timeseries'
-
-    def __post_init__(self):
-        if self.mock:
-            self.transform = self.mock_transform
 
     def fit(self, X, y=None, **fit_params):
         return self

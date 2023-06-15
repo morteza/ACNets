@@ -22,15 +22,10 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
                         'region_connectivity',
                         'network_connectivity',
                         'random_network_connectivity'] = 'network'
-    mock: bool = False
 
     #  if you are using Ray Tune, set these params to absolute paths.
     bids_dir: PathLike = 'data/julia2018'
     parcellation_cache_dir: PathLike = 'data/julia2018/derivatives/resting_timeseries/'
-
-    def __post_init__(self):
-        if self.mock:
-            self.transform = self.mock_transform
 
     def fit(self, X, y=None, **fit_params):
         return self
@@ -76,46 +71,6 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
         if (X is not None) and (str(X) != 'all'):
             subjects_1d = X.reshape(-1).tolist()
             self.dataset_ = self.dataset_.sel(dict(subject=subjects_1d))
-
-        return self.dataset_
-
-    def mock_transform(self, X):
-
-        n_features_dict = {
-            ('gordon2014_2mm', 'region'): 333,
-            ('gordon2014_2mm', 'network'): 13,
-            ('gordon2014_2mm', 'region_connectivity'): 333,
-            ('gordon2014_2mm', 'network_connectivity'): 13,
-            ('dosenbach2010', 'region'): 160,
-            ('dosenbach2010', 'network'): 6,
-            ('dosenbach2010', 'region_connectivity'): 160,
-            ('dosenbach2010', 'network_connectivity'): 6,
-            ('difumo_64_2mm', 'region'): 64,
-            ('difumo_64_2mm', 'network'): 7,
-            ('difumo_64_2mm', 'region_connectivity'): 64,
-            ('difumo_64_2mm', 'network_connectivity'): 7,
-            ('seitzman2018', 'region'): 300,
-            ('seitzman2018', 'network'): 14,
-            ('seitzman2018', 'region_connectivity'): 300,
-            ('seitzman2018', 'network_connectivity'): 14,
-        }
-
-        subjects = X
-        if subjects is None:
-            subjects = Parcellation(self.atlas).fit(None).dataset_['subject'].values
-
-        n_features = n_features_dict[(self.atlas, self.agg_networks)]
-
-        nodes = [f'node_{n}' for n in range(n_features)]
-
-        mock_conn = np.random.rand(len(subjects), n_features, n_features)
-
-        self.dataset_ = xr.DataArray(
-            mock_conn,
-            coords={'subject': subjects,
-                    'node': nodes},
-            dims=['subject', 'node', 'node'],
-            name='connectivity')
 
         return self.dataset_
 

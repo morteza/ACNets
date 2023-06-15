@@ -11,7 +11,7 @@ from ..pipeline import ConnectivityPipeline
 
 def _plot_chance_scores(X, y, cv):
     _chance_pipe = Pipeline([
-        ('connectivity', ConnectivityPipeline(mock=True)),
+        ('connectivity', ConnectivityPipeline()),
         ('clf', DummyClassifier(strategy='stratified'))
     ])
 
