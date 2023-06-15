@@ -9,10 +9,6 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
 
   def __init__(self,
                region_to_network: pd.DataFrame = None,
-               method: Literal[
-                   'region',
-                   'network',
-                   'random_network'] = 'network',
                reduce_fn: Callable = np.mean,
                ) -> None:
 
@@ -26,7 +22,7 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
     if callable(reduce_fn):
       self.reduce_fn = reduce_fn
     else:
-      raise ValueError(f'Method {reduce_fn} not supported.')
+      raise ValueError(f'Reduction method {reduce_fn} not supported.')
 
     # the rest of init from scikit-learn
     super().__init__()

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from os import PathLike
-from typing import Literal, Dict
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -17,12 +17,6 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
 
     atlas: str = 'dosenbach2010'
     kind: str = 'correlation'
-    agg_method: Literal['region',
-                        'network',
-                        'random_network',
-                        'region_connectivity',
-                        'network_connectivity',
-                        'random_network_connectivity'] = 'network'
 
     #  if you are using Ray Tune, set these params to absolute paths.
     bids_dir: PathLike = 'data/julia2018'
@@ -45,8 +39,7 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
 
         pipe = Pipeline([
             ('parcellation', parcellation),
-            ('timeseries_aggregation', TimeseriesAggregator(region_to_network=self.region_to_network,
-                                                            method=self.agg_method)),
+            ('timeseries_aggregation', TimeseriesAggregator(region_to_network=self.region_to_network)),
             ('connectivity', ConnectivityExtractor(self.kind))
             # TODO add support for *_connectivity aggregations
 
