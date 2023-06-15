@@ -6,8 +6,7 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.pipeline import make_pipeline
 from typing import Literal
 
-
-from . import Parcellation, NetworkAggregator, ConnectivityExtractor
+from . import Parcellation, Aggregator, ConnectivityExtractor
 from os import PathLike
 
 
@@ -40,7 +39,7 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
         self.p = Parcellation(self.atlas,
                               bids_dir=self.bids_dir,
                               cache_dir=self.parcellation_cache_dir)
-        self.n = NetworkAggregator(self.p.labels_)
+        self.n = Aggregator(self.p.labels_)
         self.c = ConnectivityExtractor(self.kind)
 
         if self.agg_method == 'region':
