@@ -39,7 +39,7 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
 
         pipe = Pipeline([
             ('parcellation', parcellation),
-            ('timeseries_aggregation', TimeseriesAggregator(region_to_network=self.region_to_network)),
+            ('timeseries_aggregation', TimeseriesAggregator(mapping=self.region_to_network)),
             ('connectivity', ConnectivityExtractor(self.kind))
             # TODO add support for *_connectivity aggregations
 

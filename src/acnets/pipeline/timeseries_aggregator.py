@@ -8,16 +8,16 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
   """Aggregates region-level time-series into networks, random networks, or the same regions."""
 
   def __init__(self,
-               region_to_network: pd.DataFrame = None,
+               mapping: pd.DataFrame = None,
                reduce_fn: Callable = np.mean,
                ) -> None:
 
-    if (region_to_network is None) or (len(region_to_network) == 0):
+    if (mapping is None) or (len(mapping) == 0):
       raise ValueError('Mappings must be provided.')
 
-    self.region_to_network = region_to_network.copy()
+    self.mapping = mapping.copy()
 
-    self.groups_ = self.region_to_network['group'].unique().tolist()
+    self.groups_ = self.mapping['group'].unique().tolist()
 
     if callable(reduce_fn):
       self.reduce_fn = reduce_fn
@@ -33,8 +33,8 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
   def transform(self, X):
     timeseries = []
     for X_subj in X:
-      self.region_to_network['timeseries'] = [x for x in X_subj.T]
-      ts = self.region_to_network.groupby('group')['timeseries'].apply(lambda ts: self.reduce_fn(ts))
+      self.mapping['timeseries'] = [x for x in X_subj.T]
+      ts = self.mapping.groupby('group')['timeseries'].apply(lambda ts: self.reduce_fn(ts))
       ts_arr = np.asarray(ts.to_list()).T
       timeseries.append(ts_arr)
 

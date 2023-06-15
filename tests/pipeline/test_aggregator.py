@@ -11,15 +11,13 @@ import pandas as pd
 ])
 def test_network_aggregator(atlas_name):
 
-    method = 'random_network'
-
     parcellation = Parcellation(atlas_name=atlas_name)
     X = parcellation.fit_transform(None)
 
     region_to_network = parcellation.labels_['network'].to_dict()
     region_to_network = pd.DataFrame.from_dict(region_to_network, orient='index', columns=['group'])
 
-    aggregator = TimeseriesAggregator(region_to_network=region_to_network, method=method)
+    aggregator = TimeseriesAggregator(mapping=region_to_network)
     X_agg = aggregator.fit_transform(X)
 
     n_subjects = X.shape[0]
