@@ -36,6 +36,9 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
         # if no network mapping is provided, use the one from the parcellation
         if (self.region_to_network is None) or (len(self.region_to_network) == 0):
             self.region_to_network = parcellation.labels_['network'].to_dict()
+            self.region_to_network = pd.DataFrame.from_dict(self.region_to_network,
+                                                            orient='index',
+                                                            columns=['group'])
 
         pipe = Pipeline([
             ('parcellation', parcellation),
