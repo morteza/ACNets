@@ -1,7 +1,7 @@
 from sklearn.base import TransformerMixin, BaseEstimator
 import numpy as np
 import pandas as pd
-from typing import Literal, Callable
+from typing import Callable
 
 
 class ConnectivityAggregator(TransformerMixin, BaseEstimator):
@@ -41,6 +41,5 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
         ts = self.mapping.groupby('group')['connectivity'].apply(lambda ts: self.reduce_fn(ts))
         ts_arr = np.asarray(ts.to_list())
         conn.append(ts_arr)
-
 
     return self.timeseries_

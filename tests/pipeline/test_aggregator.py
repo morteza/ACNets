@@ -36,15 +36,19 @@ def test_connectivity_aggregator_algorithm():
     groups = np.random.randint(0, n_networks, n_regions)
 
     mapping = pd.DataFrame({'region': np.arange(0, n_regions), 'group': groups})
+    mapping['group'] = mapping['group'].apply(lambda x: f'grp_{x}')
     mapping.set_index(['region', 'group'], inplace=True)
 
-    X_df = pd.DataFrame(X, index=mapping.index.copy(), columns=mapping.index.copy())
-    X_df.index.names = ['region_row', 'group_row']
-    X_df.columns.names = ['region_col', 'group_col']
+    X_regions = pd.DataFrame(X, index=mapping.index.copy(), columns=mapping.index.copy())
+    X_regions.index.names = ['region_row', 'group_row']
+    X_regions.columns.names = ['region_col', 'group_col']
 
-    X_df = X_df.reset_index().melt(id_vars=['region_row', 'group_row'])
+    X_regions = X_regions.reset_index().melt(id_vars=['region_row', 'group_row'],
+                                             value_name='connectivity')
 
-    X_df = X_df.groupby(['group_row', 'group_col'], sort=True)['value'].apply(lambda v: np.mean(v))
+    X_networks = X_regions.groupby(['group_row', 'group_col'], sort=True)
+    X_networks = X_networks['connectivity'].apply(lambda v: np.mean(v))
 
-    X_df = X_df.reset_index().pivot(index='group_row', columns='group_col')
-    print(X_df)
+    X_networks = X_networks.reset_index().pivot(index='group_row', columns='group_col')
+
+    assert X_networks.shape == (n_networks, n_networks)
