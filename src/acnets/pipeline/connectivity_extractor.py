@@ -12,8 +12,11 @@ class ConnectivityExtractor(TransformerMixin, BaseEstimator):
     super().__init__()
 
   def fit(self, dataset, y=None, **fit_params):
-    self.dataset_ = dataset
     self.node_type = dataset['timeseries'].dims[-1]
+
+    self.dataset_ = dataset
+    self.dataset_[self.node_type + '_src'] = self.dataset_[self.node_type].values
+    self.dataset_[self.node_type + '_dst'] = self.dataset_[self.node_type].values
 
     timeseries = self.dataset_['timeseries'].values
     self.conn_estimator.fit(timeseries, y, **fit_params)
@@ -25,7 +28,7 @@ class ConnectivityExtractor(TransformerMixin, BaseEstimator):
     conn = self.conn_estimator.transform(timeseries)
 
     self.dataset_['connectivity'] = (
-        ['subject', self.node_type, self.node_type],
+        ['subject', self.node_type + '_src', self.node_type + '_dst'],
         conn)
 
     return self.dataset_
