@@ -8,7 +8,7 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
   """Aggregates region-level time-series into networks, random networks, or the same regions."""
 
   def __init__(self,
-               strategy: Literal['regions', 'networks', 'random_networks'] = 'regions',
+               strategy: Literal['region', 'network', 'random_network'] = 'region',
                reduce_fn: Callable = np.mean,
                ) -> None:
 
@@ -26,13 +26,13 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
 
     self.dataset_ = dataset
 
-    if self.strategy == 'regions':
+    if self.strategy == 'region':
       return self
 
-    if self.strategy == 'random_networks':
+    if self.strategy == 'random_network':
       self.dataset_['network'] = (['region'], np.random.permutation(self.dataset_['network']))
 
-    # either 'networks' or 'random_networks'
+    # either 'network' or 'random_network'
     network_timeseries = self.dataset_.groupby('network').mean(dim='region')['timeseries']
     network_timeseries = network_timeseries.transpose('subject', 'timepoint', 'network')
     self.dataset_['timeseries'] = network_timeseries

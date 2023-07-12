@@ -28,6 +28,12 @@ def test_network_aggregator(atlas_name):
 
 
 def test_connectivity_aggregator_algorithm():
+    """standalone implementation of the connectivity matrix aggregation.
+
+    This is the core algorithm that is implemented in the ConnectivityAggregator class to
+    aggregate region-level connectivity matrices into networks, random networks, or the same regions.
+
+    """
 
     n_regions = 100
     n_networks = 5

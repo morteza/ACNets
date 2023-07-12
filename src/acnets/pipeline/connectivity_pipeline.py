@@ -17,6 +17,8 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
 
     atlas: str = 'dosenbach2010'
     kind: str = 'correlation'
+    timeseries_aggregation: Literal[None, 'network', 'random_network'] = None
+    connectivity_aggregation: Literal[None, 'network', 'random_network'] = None
 
     #  if you are using Ray Tune, set these params to absolute paths.
     bids_dir: PathLike = 'data/julia2018'
@@ -42,29 +44,23 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
 
         pipe = Pipeline([
             ('parcellation', parcellation),
-            ('timeseries_aggregation', TimeseriesAggregator(mapping=self.region_to_network)),
+            ('timeseries_aggregation', TimeseriesAggregator(strategy=self.timeseries_aggregation)),
             ('connectivity', ConnectivityExtractor(self.kind))
             # TODO add support for *_connectivity aggregations
         ])
 
-        conn = pipe.fit_transform(X)
-        nodes = pipe.named_steps['timeseries_aggregation'].groups_
+        self.dataset_ = pipe.fit_transform(X)
 
         # TODO if we are aggregating connectivity, we need to do get node names from there
-
-        self.dataset_ = xr.DataArray(
-            conn,
-            coords={'subject': parcellation.dataset_['subject'],
-                    'node': nodes},
-            dims=['subject', 'node', 'node'],
-            name='connectivity')
 
         # select only queried subjects
         if X is not None:
             selected_subjects = X.reshape(-1).tolist()
             self.dataset_ = self.dataset_.sel(dict(subject=selected_subjects))
 
-        return self.dataset_
+        conn = self.dataset_['connectivity'].values
+
+        return conn
 
     def get_feature_names_out(self,
                               input_features=None,
