@@ -8,16 +8,11 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
   """Aggregates region-level time-series into networks, random networks, or the same regions."""
 
   def __init__(self,
-               mapping: pd.DataFrame = None,
+               strategy: Literal['regions', 'networks', 'random_networks'] = 'regions',
                reduce_fn: Callable = np.mean,
                ) -> None:
 
-    if (mapping is None) or (len(mapping) == 0):
-      raise ValueError('Mappings must be provided.')
-
-    self.mapping = mapping.copy()
-
-    self.groups_ = self.mapping['group'].unique().tolist()
+    self.strategy = strategy
 
     if callable(reduce_fn):
       self.reduce_fn = reduce_fn
@@ -27,17 +22,23 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
     # the rest of init from scikit-learn
     super().__init__()
 
-  def fit(self, X=None, y=None, **fit_params):
+  def fit(self, dataset, y=None, **fit_params):
+
+    self.dataset_ = dataset
+
+    if self.strategy == 'regions':
+      return self
+
+    if self.strategy == 'random_networks':
+      self.dataset_['network'] = (['region'], np.random.permutation(self.dataset_['network']))
+
+    # either 'networks' or 'random_networks'
+    network_timeseries = self.dataset_.groupby('network').mean(dim='region')['timeseries']
+    network_timeseries = network_timeseries.transpose('subject', 'timepoint', 'network')
+    self.dataset_['timeseries'] = network_timeseries
+
     return self
 
-  def transform(self, X):
-    timeseries = []
-    for X_subj in X:
-      self.mapping['timeseries'] = [x for x in X_subj.T]
-      ts = self.mapping.groupby('group')['timeseries'].apply(lambda ts: self.reduce_fn(ts))
-      ts_arr = np.asarray(ts.to_list()).T
-      timeseries.append(ts_arr)
+  def transform(self, dataset):
 
-    self.timeseries_ = np.asarray(timeseries)  # shape: (n_subjects, n_timepoints, n_groups)
-
-    return self.timeseries_
+    return self.dataset_

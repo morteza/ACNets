@@ -169,6 +169,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
       cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
       if cached_ds_path.exists():
         self.dataset_ = xr.open_dataset(cached_ds_path)
+        self.dataset_ = self.dataset_.set_coords('network')
         return self
 
     # fit if not already fitted
@@ -177,11 +178,12 @@ class Parcellation(TransformerMixin, BaseEstimator):
       time_series = self.extract_timeseries(img_files, mask_files, self.atlas_name)
       self.dataset_ = self.create_dataset(time_series)
       self.cache_dataset(overwrite=False)
+      self.dataset_ = self.dataset_.set_coords('network')
 
     return self
 
   def transform(self, X=None):  # noqa: N803
-    """Extract parcellated time-series from the dataset.
+    """Extract region time-series from the dataset.
 
     Parameters
     ----------
@@ -194,6 +196,10 @@ class Parcellation(TransformerMixin, BaseEstimator):
     -------
     numpy.ndarray
         time-series of shape (n_size, n_timepoints, n_regions).
+    xarray.Dataset
+        dataset with the following variables:
+          - subject: (len(X))
+          - timeseries: (n_subjects, n_timepoints, n_regions)
 
     Raises
     ------
@@ -209,5 +215,4 @@ class Parcellation(TransformerMixin, BaseEstimator):
     #   _subjects = X.reshape(-1).tolist()
     #   ds = ds.sel(dict(subject=_subjects))
 
-    timeseries = ds['timeseries'].values
-    return timeseries
+    return ds
