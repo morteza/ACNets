@@ -40,9 +40,10 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
 
     dataset = dataset.assign_coords(network_src=('region_src', dataset['network'].values))
     dataset = dataset.assign_coords(network_dst=('region_dst', dataset['network'].values))
-    dataset['network_connectivity'] = (
-        dataset['connectivity'].groupby('network_src').mean('region_src')
-                               .groupby('network_dst').mean('region_dst')
+    dataset['connectivity'] = (
+        dataset['connectivity']
+        .groupby('network_src').mean('region_src')
+        .groupby('network_dst').mean('region_dst')
     )
 
     return dataset

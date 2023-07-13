@@ -67,6 +67,8 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
                               input_features=None,
                               sep=' \N{left right arrow} '):
 
+        # TODO: update to extract from dataset_
+
         if input_features is None:
             input_features = self.transform(None).coords['node'].values
 
