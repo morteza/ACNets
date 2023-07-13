@@ -27,9 +27,16 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
   def transform(self, dataset):
     node_type = dataset['timeseries'].dims[-1]
 
-    if self.strategy is not None and node_type != 'region':
+    if self.strategy is None:
+      return dataset
+
+    # we need region-level connectivity matrices to aggregate
+    if node_type != 'region':
       raise ValueError(f'Time-series are already aggregated. '
                        f'Connectivity aggregation strategy `{self.strategy}` is not supported.')
+
+    if self.strategy == 'random_network':
+      dataset['network'] = (['region'], np.random.permutation(dataset['network']))
 
     dataset = dataset.assign_coords(network_src=('region_src', dataset['network'].values))
     dataset = dataset.assign_coords(network_dst=('region_dst', dataset['network'].values))
