@@ -23,7 +23,6 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
     #  if you are using Ray Tune, set these params to absolute paths.
     bids_dir: PathLike = 'data/julia2018'
     parcellation_cache_dir: PathLike = 'data/julia2018/derivatives/resting_timeseries/'
-    region_to_network: pd.DataFrame = None  # map regions to groups (e.g., the same regions, networks, random networks)
 
     def fit(self, X, y=None, **fit_params):
         return self
@@ -34,13 +33,6 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
             self.atlas,
             bids_dir=self.bids_dir,
             cache_dir=self.parcellation_cache_dir)
-
-        # if region2network mapping is not provided, use the default one from the parcellation
-        if (self.region_to_network is None) or (len(self.region_to_network) == 0):
-            self.region_to_network = parcellation.labels_['network'].to_dict()
-            self.region_to_network = pd.DataFrame.from_dict(self.region_to_network,
-                                                            orient='index',
-                                                            columns=['group'])
 
         pipe = Pipeline([
             ('parcellation', parcellation),
