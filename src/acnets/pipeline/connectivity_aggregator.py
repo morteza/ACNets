@@ -7,11 +7,11 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
   """Aggregates region-level connectivity into networks, random networks, or the same regions."""
 
   def __init__(self,
-               aggregation_strategy: Literal[None, 'network', 'random_network'] = None,
+               strategy: Literal[None, 'network', 'random_network'] = None,
                reduce_fn: Callable = np.mean,
                ) -> None:
 
-    self.aggregation_strategy = aggregation_strategy
+    self.strategy = strategy
 
     if callable(reduce_fn):
       self.reduce_fn = reduce_fn
@@ -21,15 +21,21 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
     # the rest of init from scikit-learn
     super().__init__()
 
-  def fit(self, dataset, y=None, **fit_params):
-    self.dataset_ = dataset
-    self.node_type = dataset['timeseries'].dims[-1]
-
-    if self.aggregation_strategy is not None and self.node_type != 'region':
-      raise ValueError(f'Time-series are already aggregated. '
-                       f'Connectivity aggregation strategy `{self.aggregation_strategy}` is not supported.')
-
+  def fit(self, X, y=None, **fit_params):
     return self
 
   def transform(self, dataset):
-    return self.dataset_
+    node_type = dataset['timeseries'].dims[-1]
+
+    if self.strategy is not None and node_type != 'region':
+      raise ValueError(f'Time-series are already aggregated. '
+                       f'Connectivity aggregation strategy `{self.strategy}` is not supported.')
+
+    dataset = dataset.assign_coords(network_src=('region_src', dataset['network'].values))
+    dataset = dataset.assign_coords(network_dst=('region_dst', dataset['network'].values))
+    dataset['network_connectivity'] = (
+        dataset['connectivity'].groupby('network_src').mean('region_src')
+                               .groupby('network_dst').mean('region_dst')
+    )
+
+    return dataset

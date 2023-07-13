@@ -8,7 +8,7 @@ import xarray as xr
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 
-from . import TimeseriesAggregator, ConnectivityExtractor, Parcellation
+from . import TimeseriesAggregator, ConnectivityExtractor, Parcellation, ConnectivityAggregator
 
 
 @dataclass
@@ -45,7 +45,8 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
         pipe = Pipeline([
             ('parcellation', parcellation),
             ('timeseries_aggregation', TimeseriesAggregator(strategy=self.timeseries_aggregation)),
-            ('connectivity', ConnectivityExtractor(self.kind))
+            ('connectivity', ConnectivityExtractor(self.kind)),
+            ('connectivity_aggregation', ConnectivityAggregator(strategy=self.connectivity_aggregation))
             # TODO add support for *_connectivity aggregations
         ])
 
