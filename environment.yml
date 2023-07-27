@@ -42,6 +42,7 @@ dependencies:
     - h5netcdf
     - netCDF4
     - pybids
+    - pingouin
     # - visbrain
     # - scikit-optimize
     # - tune-sklearn
