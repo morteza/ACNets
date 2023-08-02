@@ -209,10 +209,10 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if not self.dataset_:
       raise ValueError('Parcellation has not been fitted yet.')
 
-    # FIXME
     ds = self.dataset_
-    # if X is not None:
-    #   _subjects = X.reshape(-1).tolist()
-    #   ds = ds.sel(dict(subject=_subjects))
+
+    if X is not None:
+      selected_subjects = X.reshape(-1).tolist()
+      ds = self.dataset_.sel(dict(subject=selected_subjects))
 
     return ds

@@ -58,13 +58,9 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
 
     def transform(self, X):
 
-        parcellation = Parcellation(
-            self.atlas,
-            bids_dir=self.bids_dir,
-            cache_dir=self.parcellation_cache_dir)
-
         pipe = Pipeline([
-            ('parcellation', parcellation),
+            ('parcellation', Parcellation(self.atlas, bids_dir=self.bids_dir,
+                                          cache_dir=self.parcellation_cache_dir)),
             ('timeseries_aggregation', TimeseriesAggregator(strategy=self.timeseries_aggregation)),
             ('connectivity', ConnectivityExtractor(self.kind)),
             ('connectivity_aggregation', ConnectivityAggregator(strategy=self.connectivity_aggregation))
