@@ -64,17 +64,11 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
             ('timeseries_aggregation', TimeseriesAggregator(strategy=self.timeseries_aggregation)),
             ('connectivity', ConnectivityExtractor(self.kind)),
             ('connectivity_aggregation', ConnectivityAggregator(strategy=self.connectivity_aggregation))
-            # TODO add support for *_connectivity aggregations
         ])
 
         self.dataset_ = pipe.fit_transform(X)
 
-        # TODO if we are aggregating connectivity, we need to do get node names from there
-
-        # select only queried subjects
-        if X is not None:
-            selected_subjects = X.reshape(-1).tolist()
-            self.dataset_ = self.dataset_.sel(dict(subject=selected_subjects))
+        # TODO if we are aggregating connectivity, we need to get the node names from the conn matrix
 
         conn = self.dataset_['connectivity'].values
 
