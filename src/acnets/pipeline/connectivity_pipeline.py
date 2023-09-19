@@ -68,8 +68,7 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
 
         self.dataset_ = pipe.fit_transform(X)
 
-        # TODO if we are aggregating connectivity, we need to get the node names from the conn matrix
-
+        # get connectivity matrices
         conn = self.dataset_['connectivity'].values
 
         return conn

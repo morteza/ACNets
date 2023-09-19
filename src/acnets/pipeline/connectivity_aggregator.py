@@ -9,6 +9,7 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
   def __init__(self,
                strategy: Literal[None, 'network', 'random_network'] = None,
                reduce_fn: Callable = np.mean,
+               conn_transform_fn: Callable = np.fabs
                ) -> None:
 
     self.strategy = strategy
@@ -17,6 +18,11 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
       self.reduce_fn = reduce_fn
     else:
       raise ValueError(f'Reduction method {reduce_fn} not supported.')
+
+    if callable(conn_transform_fn):
+      self.conn_transform_fn = conn_transform_fn
+    else:
+      raise ValueError(f'Transformation method {conn_transform_fn} not supported.')
 
     # the rest of init from scikit-learn
     super().__init__()
@@ -40,6 +46,10 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
 
     dataset = dataset.assign_coords(network_src=('region_src', dataset['network'].values))
     dataset = dataset.assign_coords(network_dst=('region_dst', dataset['network'].values))
+
+    # defaults to take absolute value of connectivity matrices
+    dataset['connectivity'] = self.conn_transform_fn(dataset['connectivity'])
+
     dataset['connectivity'] = (
         dataset['connectivity']
         .groupby('network_src').mean('region_src')
