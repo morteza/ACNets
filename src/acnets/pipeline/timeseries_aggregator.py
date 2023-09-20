@@ -36,6 +36,7 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
     # either 'network' or 'random_network'
     network_timeseries = dataset.groupby('network').mean(dim='region')['timeseries']
     network_timeseries = network_timeseries.transpose('subject', 'timepoint', 'network')
+    dataset['region_timeseries'] = dataset['timeseries']
     dataset['timeseries'] = network_timeseries
 
     return dataset
