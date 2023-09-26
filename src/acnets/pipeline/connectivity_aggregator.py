@@ -8,33 +8,25 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
 
   def __init__(self,
                strategy: Literal[None, 'network', 'random_network'] = None,
-               reduce_fn: Callable = np.mean,
-               conn_transform_fn: Callable = np.fabs
                ) -> None:
 
     self.strategy = strategy
 
-    if callable(reduce_fn):
-      self.reduce_fn = reduce_fn
-    else:
-      raise ValueError(f'Reduction method {reduce_fn} not supported.')
-
-    if callable(conn_transform_fn):
-      self.conn_transform_fn = conn_transform_fn
-    else:
-      raise ValueError(f'Transformation method {conn_transform_fn} not supported.')
-
     # the rest of init from scikit-learn
     super().__init__()
 
-  def fit(self, X, y=None, **fit_params):
+  def fit(self, dataset, y=None, **fit_params):
+
     return self
 
   def transform(self, dataset):
-    node_type = dataset['timeseries'].dims[-1]
+
+    self.dataset_ = dataset
 
     if self.strategy is None:
-      return dataset
+      return self
+
+    node_type = self.dataset_['timeseries'].dims[-1]
 
     # we need region-level connectivity matrices to aggregate
     if node_type != 'region':
@@ -42,18 +34,26 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
                        f'Connectivity aggregation strategy `{self.strategy}` is not supported.')
 
     if self.strategy == 'random_network':
-      dataset['network'] = (['region'], np.random.permutation(dataset['network']))
+      self.dataset_['network'] = (['region'],
+                                  np.random.permutation(self.dataset_['network']))
 
-    dataset = dataset.assign_coords(network_src=('region_src', dataset['network'].values))
-    dataset = dataset.assign_coords(network_dst=('region_dst', dataset['network'].values))
+    self.dataset_ = self.dataset_.assign_coords(network_src=('region_src', self.dataset_['network'].values))
+    self.dataset_ = self.dataset_.assign_coords(network_dst=('region_dst', self.dataset_['network'].values))
 
     # defaults to take absolute value of connectivity matrices
-    dataset['connectivity'] = self.conn_transform_fn(dataset['connectivity'])
+    self.dataset_['connectivity'] = np.fabs(self.dataset_['connectivity'])
 
-    dataset['connectivity'] = (
-        dataset['connectivity']
+    self.dataset_['connectivity'] = (
+        self.dataset_['connectivity']
         .groupby('network_src').mean('region_src')
         .groupby('network_dst').mean('region_dst')
     )
+    return self.dataset_
 
-    return dataset
+  def get_feature_names_out(self, input_features=None):
+    if self.strategy is None:
+      return input_features
+    elif 'network' in self.strategy:
+      return self.dataset_.coords['network_src'].values.tolist()
+
+    return None

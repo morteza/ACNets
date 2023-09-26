@@ -194,8 +194,6 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     Returns
     -------
-    numpy.ndarray
-        time-series of shape (n_size, n_timepoints, n_regions).
     xarray.Dataset
         dataset with the following variables:
           - subject: (len(X))
@@ -204,13 +202,21 @@ class Parcellation(TransformerMixin, BaseEstimator):
     Raises
     ------
     ValueError
-        call fit() before calling transform().
+        Parcellation has not been fitted yet. Call fit() before calling transform().
     """
     if not self.dataset_:
       raise ValueError('Parcellation has not been fitted yet.')
 
     if X is not None:
       selected_subjects = X.reshape(-1).tolist()
-      self.dataset_ = self.dataset_.sel(subject=selected_subjects)
+      selected_dataset = self.dataset_.sel(subject=selected_subjects)
+    else:
+      selected_dataset = self.dataset_
 
-    return self.dataset_
+    return selected_dataset
+
+  def get_feature_names_out(self, input_features):
+    if not self.dataset_:
+      raise ValueError('Parcellation has not been fitted yet.')
+
+    return self.dataset_.coords['region'].values.tolist()

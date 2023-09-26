@@ -9,34 +9,37 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
 
   def __init__(self,
                strategy: Literal[None, 'network', 'random_network'] = None,  # None = 'region'
-               reduce_fn: Callable = np.mean,
                ) -> None:
 
     self.strategy = strategy
 
-    if callable(reduce_fn):
-      self.reduce_fn = reduce_fn
-    else:
-      raise ValueError(f'Reduction method {reduce_fn} not supported.')
-
     # the rest of init from scikit-learn
     super().__init__()
 
-  def fit(self, X, y=None, **fit_params):
+  def fit(self, dataset, y=None, **fit_params):
+
     return self
 
   def transform(self, dataset):
 
+    self.dataset_ = dataset
+
     if self.strategy is None:
-      return dataset
+      return self.dataset_
 
     if self.strategy == 'random_network':
-      dataset['network'] = (['region'], np.random.permutation(dataset['network']))
+      self.dataset_['network'] = (['region'],
+                                  np.random.permutation(self.dataset_['network']))
 
     # either 'network' or 'random_network'
-    network_timeseries = dataset.groupby('network').mean(dim='region')['timeseries']
+    network_timeseries = self.dataset_.groupby('network').mean(dim='region')['timeseries']
     network_timeseries = network_timeseries.transpose('subject', 'timepoint', 'network')
-    dataset['region_timeseries'] = dataset['timeseries']
-    dataset['timeseries'] = network_timeseries
+    self.dataset_['region_timeseries'] = self.dataset_['timeseries']
+    self.dataset_['timeseries'] = network_timeseries
 
-    return dataset
+    return self.dataset_
+
+  def get_feature_names_out(self, input_features=None):
+    if self.strategy is None:
+      return input_features
+    return None
