@@ -210,14 +210,8 @@ class MultiScaleClassifier(Pipeline):
             ('extract_features', FeatureUnion(feature_extractors)),
             ('scale', StandardScaler()),
             ('zerovar', VarianceThreshold()),
+            # ('select', SelectFromModel(XGBClassifier(max_depth=3, n_estimators=100, learning_rate=0.1))),
             ('clf', XGBClassifier())
-            # ('ica', FastICA(n_components=20)),
-            # ('select', SelectFromModel(RandomForestClassifier(),
-            #                extract            max_features=lambda x: min(10, x.shape[1]))),
-            # ('clf', RandomForestClassifier())
-            # ('select', SelectFromModel(LinearSVC(penalty='l2', dual=False, max_iter=10000),
-            #                            max_features=lambda x: min(10, x.shape[1]))),
-            # ('clf', LinearSVC(penalty='l2', dual=False, max_iter=10000))            
         ]
 
         super().__init__(_steps, memory=memory, verbose=verbose)
@@ -226,14 +220,14 @@ class MultiScaleClassifier(Pipeline):
         super().fit(X, y, **fit_params)
         return self
 
-    def get_feature_extractor_head(self):
+    def get_feature_extractor(self):
         return self[:2]
 
     def get_classification_head(self):
         return self[2:]
 
     def get_feature_names_out(self, input_features=None):
-        return self.get_feature_extractor_head().get_feature_names_out(input_features)
+        return self.get_feature_extractor().get_feature_names_out(input_features)
 
     def __getitem__(self, ind):
         """This is a slight modification of `Pipeline.__getitem__` to avoid copying the steps.
@@ -250,8 +244,3 @@ class MultiScaleClassifier(Pipeline):
             # Not an int, try get step by name
             return self.named_steps[ind]
         return est
-
-    # def set_params(self, **kwargs):
-    #     print(kwargs)
-    #     super().set_params(**kwargs)
-    #     return self
