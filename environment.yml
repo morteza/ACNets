@@ -1,13 +1,12 @@
 # This file may be used to create an environment using:
-# $ conda env create --file <this file>
-# platform: osx-64
+# $ mamba env create -f environment.yml
 
 name: acnets
 channels:
   - conda-forge
 dependencies:
-  # DEV
-  - python<3.11
+  - python
+  - pip
   - dvc
   - dvc-ssh
   - ipykernel
@@ -16,33 +15,32 @@ dependencies:
   - watermark
   - dvc
   - dvc-ssh
+  - pandas
+  - scikit-learn
+  - nilearn
+  - matplotlib
+  - seaborn
+  - shap
+  - xarray
+  - netcdf4
+  - h5netcdf
+  - networkx
+  - py-xgboost
+  - pytest
+  - pytest-cov
+  - pytest-mpl
+  - pybids
+  - ray-tune
+  - tune-sklearn
+  - hyperopt
   # - dcm2niix
   # - heudiconv=0.8.0
   # - fmriprep-docker
-  - pip
-  - pip:
-    # XGBoost classifier requires external libraries, don't use `xgboost` package.
-    # - py-xgboost
-    # UMAP requires Numba which requires numpy<=1.21.
+  # - pip:
     # - umap-learn
-    - pytest
-    - pytest-cov
-    - pytest-plt
-    - shap
     # - plotly
-    - matplotlib
-    - seaborn
     # - fastcluster
-    - networkx
     # - nipype
-    - scikit-learn
-    - nilearn
-    - pandas
-    - xarray
-    - h5netcdf
-    - netCDF4
-    - pybids
-    - pingouin
     # - visbrain
     # - scikit-optimize
     # - tune-sklearn
@@ -50,5 +48,4 @@ dependencies:
     # - ray[data]
     # - ray
     # - pyarrow
-    # - pybids
 

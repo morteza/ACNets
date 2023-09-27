@@ -49,9 +49,8 @@ class ExtractH1Features(TransformerMixin, BaseEstimator):
         return self.feature_names
 
     @classmethod
-    def get_pipeline(cls, atlas='dosenbach2010'):
+    def get_pipeline(cls):
         pipe = Pipeline([
-            ('parcellation', Parcellation(atlas_name=atlas)),
             ('h1_features', ExtractH1Features()),
             # TODO normalize timeseries
         ])
@@ -89,9 +88,8 @@ class ExtractH2Features(TransformerMixin, BaseEstimator):
         return self.feature_names
 
     @classmethod
-    def get_pipeline(cls, atlas='dosenbach2010', kind='partial correlation'):
+    def get_pipeline(cls, kind='partial correlation'):
         pipe = Pipeline([
-            ('parcellation', Parcellation(atlas_name=atlas)),
             ('aggregate_timeseries', TimeseriesAggregator(strategy=None)),
             ('extract_connectivity', ConnectivityExtractor(kind=kind)),
             ('aggregate_connectivity', ConnectivityAggregator(strategy='network')),
@@ -111,7 +109,7 @@ class ExtractH3Features(TransformerMixin, BaseEstimator):
 
     """
 
-    def __init__(self, k=0):
+    def __init__(self, k=1):
         self.k = k
 
     def fit(self, dataset, y=None):
@@ -146,14 +144,13 @@ class ExtractH3Features(TransformerMixin, BaseEstimator):
         return self.feature_names
 
     @classmethod
-    def get_pipeline(cls, atlas='dosenbach2010', kind='partial correlation'):
+    def get_pipeline(cls, kind='partial correlation', k=1):
         # H3: between-network connectivity
         # non-diagonal connectivity between networks (shape: N_networks * N_networks / 2)
         pipe = Pipeline([
-            ('parcellation', Parcellation(atlas_name=atlas)),
             ('aggregate_timeseries', TimeseriesAggregator(strategy='network')),
             ('extract_connectivity', ConnectivityExtractor(kind=kind)),
-            ('h3_features', ExtractH3Features())
+            ('h3_features', ExtractH3Features(k))
         ])
         return pipe
 
@@ -195,22 +192,21 @@ class MultiScaleClassifier(Pipeline):
     def __init__(self,
                  atlas: str = 'dosenbach2010',
                  kind: str = 'partial correlation',
-                 memory=None, verbose=False,
-                 bids_dir: PathLike = 'data/julia2018',
-                 parcellation_cache_dir: PathLike = 'data/julia2018/derivatives/resting_timeseries/'):
+                 memory=None, verbose=False):
 
         self.atlas = atlas
         self.kind = kind
-        self.bids_dir = bids_dir
-        self.parcellation_cache_dir = parcellation_cache_dir
+        self.memory = memory
+        self.verbose = verbose
 
         feature_extractors = [
             ('h1', ExtractH1Features.get_pipeline()),
             ('h2', ExtractH2Features.get_pipeline(kind=kind)),
-            ('h3', ExtractH3Features.get_pipeline(kind=kind))
+            ('h3', ExtractH3Features.get_pipeline(kind=kind, k=1))
         ]
 
         _steps = [
+            ('parcellation', Parcellation(atlas_name=atlas)),
             ('extract_features', FeatureUnion(feature_extractors)),
             ('scale', StandardScaler()),
             ('zerovar', VarianceThreshold()),
@@ -224,7 +220,6 @@ class MultiScaleClassifier(Pipeline):
             # ('clf', LinearSVC(penalty='l2', dual=False, max_iter=10000))            
         ]
 
-        # initializing the scikit Pipeline
         super().__init__(_steps, memory=memory, verbose=verbose)
 
     def fit(self, X, y=None, **fit_params):
@@ -232,10 +227,13 @@ class MultiScaleClassifier(Pipeline):
         return self
 
     def get_feature_extractor_head(self):
-        return self[:1]
+        return self[:2]
 
     def get_classification_head(self):
-        return self[1:]
+        return self[2:]
+
+    def get_feature_names_out(self, input_features=None):
+        return self.get_feature_extractor_head().get_feature_names_out(input_features)
 
     def __getitem__(self, ind):
         """This is a slight modification of `Pipeline.__getitem__` to avoid copying the steps.
@@ -252,3 +250,8 @@ class MultiScaleClassifier(Pipeline):
             # Not an int, try get step by name
             return self.named_steps[ind]
         return est
+
+    # def set_params(self, **kwargs):
+    #     print(kwargs)
+    #     super().set_params(**kwargs)
+    #     return self

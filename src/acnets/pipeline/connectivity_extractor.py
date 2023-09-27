@@ -12,7 +12,8 @@ class ConnectivityExtractor(TransformerMixin, BaseEstimator):
     super().__init__()
 
   def fit(self, dataset, y=None, **fit_params):
-
+    self.node_type = dataset['timeseries'].dims[-1]
+    self.feature_names_ = dataset.coords[self.node_type].values.tolist()
     return self
 
   def transform(self, dataset, y=None):  # noqa: N803
@@ -36,4 +37,4 @@ class ConnectivityExtractor(TransformerMixin, BaseEstimator):
     return new_dataset
 
   def get_feature_names_out(self, input_features=None, sep=' \N{left right arrow} '):
-    return self.dataset_.coords[self.node_type].values.tolist()
+    return self.feature_names_

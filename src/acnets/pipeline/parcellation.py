@@ -27,21 +27,19 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
   def __init__(self,
                atlas_name='cort-maxprob-thr25-2mm',
-               bids_dir='data/julia2018',
+               bids_dir='~/workspace/acnets/data/julia2018',
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
-               cache_dir='data/julia2018/derivatives/resting_timeseries/',
+               cache_dir='~/workspace/acnets/data/julia2018/derivatives/resting_timeseries/',
                verbose=0) -> None:
 
     self.verbose = verbose
     self.atlas_name = atlas_name
-    self.bids_dir = bids_dir
-    self.cache_dir = cache_dir
+    self.bids_dir = Path(bids_dir).expanduser()
+    self.cache_dir = Path(cache_dir).expanduser()
     self.denoise_strategy = denoise_strategy
 
-    self.dataset_: xr.Dataset = None
-
-    self.fmriprep_dir_ = Path(self.bids_dir).expanduser() / 'derivatives/fmriprep_2020'
+    self.fmriprep_dir_ = self.bids_dir / 'derivatives/fmriprep_2020'
     self.fmriprep_bids_space = fmriprep_bids_space
 
     # validation (TODO intergate all the validations in a single function)
@@ -150,9 +148,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
     return _ds
 
-  def cache_dataset(self, overwrite=False):
-    if not self.dataset_:
-      raise ValueError('Parcellation has not been fitted yet.')
+  def cache_dataset(self, dataset, overwrite=False):
 
     if not self.cache_dir:
       raise ValueError('`cache_dir` is not properly set.')
@@ -160,7 +156,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
 
     if overwrite or not cached_ds_path.exists():
-      self.dataset_.to_netcdf(cached_ds_path, engine='h5netcdf')
+      dataset.to_netcdf(cached_ds_path, engine='h5netcdf')
 
   def fit(self, X=None, y=None, **fit_params):  # noqa: N803
 
@@ -169,9 +165,11 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if not cached_ds_path.exists():
       img_files, mask_files = self._get_fmriprep_files()
       time_series = self.extract_timeseries(img_files, mask_files, self.atlas_name)
-      self.dataset_ = self.create_dataset(time_series)
-      self.cache_dataset(overwrite=False)
-      self.dataset_ = self.dataset_.set_coords('network')
+      dataset = self.create_dataset(time_series)
+      self.cache_dataset(dataset, overwrite=False)
+    else:
+      dataset = xr.open_dataset(cached_ds_path)
+      self.feature_names_ = dataset.coords['region'].values.tolist()
 
     return self
 
@@ -212,7 +210,4 @@ class Parcellation(TransformerMixin, BaseEstimator):
     return dataset
 
   def get_feature_names_out(self, input_features):
-    if not self.dataset_:
-      raise ValueError('Parcellation has not been fitted yet.')
-
-    return self.dataset_.coords['region'].values.tolist()
+    return self.feature_names_

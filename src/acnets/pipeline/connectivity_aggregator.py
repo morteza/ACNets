@@ -16,7 +16,7 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
     super().__init__()
 
   def fit(self, dataset, y=None, **fit_params):
-
+    self.feature_name_ = dataset.coords['network'].values.tolist()
     return self
 
   def transform(self, dataset):
@@ -35,7 +35,7 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
 
     if self.strategy == 'random_network':
       new_dataset['network'] = (['region'],
-                                  np.random.permutation(new_dataset['network']))
+                                np.random.permutation(new_dataset['network']))
 
     new_dataset = new_dataset.assign_coords(network_src=('region_src', new_dataset['network'].values))
     new_dataset = new_dataset.assign_coords(network_dst=('region_dst', new_dataset['network'].values))
@@ -54,6 +54,6 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
     if self.strategy is None:
       return input_features
     elif 'network' in self.strategy:
-      return self.dataset_.coords['network_src'].values.tolist()
+      return self.feature_name_
 
     return None
