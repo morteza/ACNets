@@ -16,24 +16,24 @@ class ConnectivityExtractor(TransformerMixin, BaseEstimator):
     return self
 
   def transform(self, dataset, y=None):  # noqa: N803
-    self.dataset_ = dataset
+    new_dataset = dataset.copy()
 
-    self.node_type = self.dataset_['timeseries'].dims[-1]
+    self.node_type = new_dataset['timeseries'].dims[-1]
 
-    self.dataset_[self.node_type + '_src'] = self.dataset_[self.node_type].values
-    self.dataset_[self.node_type + '_dst'] = self.dataset_[self.node_type].values
+    new_dataset[self.node_type + '_src'] = new_dataset[self.node_type].values
+    new_dataset[self.node_type + '_dst'] = new_dataset[self.node_type].values
 
-    timeseries = self.dataset_['timeseries'].values
+    timeseries = new_dataset['timeseries'].values
     self.conn_estimator.fit(timeseries, y)
 
-    timeseries = self.dataset_['timeseries'].values
+    timeseries = new_dataset['timeseries'].values
     conn = self.conn_estimator.transform(timeseries)
 
-    self.dataset_['connectivity'] = (
+    new_dataset['connectivity'] = (
         ['subject', self.node_type + '_src', self.node_type + '_dst'],
         conn)
 
-    return self.dataset_
+    return new_dataset
 
   def get_feature_names_out(self, input_features=None, sep=' \N{left right arrow} '):
     return self.dataset_.coords[self.node_type].values.tolist()

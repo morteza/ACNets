@@ -22,22 +22,22 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
 
   def transform(self, dataset):
 
-    self.dataset_ = dataset
-
     if self.strategy is None:
-      return self.dataset_
+      return dataset
+
+    new_dataset = dataset.copy()
 
     if self.strategy == 'random_network':
-      self.dataset_['network'] = (['region'],
-                                  np.random.permutation(self.dataset_['network']))
+      new_dataset['network'] = (['region'],
+                                np.random.permutation(new_dataset['network']))
 
     # either 'network' or 'random_network'
-    network_timeseries = self.dataset_.groupby('network').mean(dim='region')['timeseries']
+    network_timeseries = new_dataset.groupby('network').mean(dim='region')['timeseries']
     network_timeseries = network_timeseries.transpose('subject', 'timepoint', 'network')
-    self.dataset_['region_timeseries'] = self.dataset_['timeseries']
-    self.dataset_['timeseries'] = network_timeseries
+    new_dataset['region_timeseries'] = new_dataset['timeseries']
+    new_dataset['timeseries'] = network_timeseries
 
-    return self.dataset_
+    return new_dataset
 
   def get_feature_names_out(self, input_features=None):
     if self.strategy is None:

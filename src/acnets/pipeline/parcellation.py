@@ -164,16 +164,9 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
   def fit(self, X=None, y=None, **fit_params):  # noqa: N803
 
-    # load from cache
-    if self.cache_dir:
-      cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
-      if cached_ds_path.exists():
-        self.dataset_ = xr.open_dataset(cached_ds_path)
-        self.dataset_ = self.dataset_.set_coords('network')
-        return self
+    cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
 
-    # fit if not already fitted
-    if not self.dataset_:
+    if not cached_ds_path.exists():
       img_files, mask_files = self._get_fmriprep_files()
       time_series = self.extract_timeseries(img_files, mask_files, self.atlas_name)
       self.dataset_ = self.create_dataset(time_series)
@@ -204,16 +197,19 @@ class Parcellation(TransformerMixin, BaseEstimator):
     ValueError
         Parcellation has not been fitted yet. Call fit() before calling transform().
     """
-    if not self.dataset_:
-      raise ValueError('Parcellation has not been fitted yet.')
+
+    # load from cache
+    if self.cache_dir:
+      cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
+      if cached_ds_path.exists():
+        dataset = xr.open_dataset(cached_ds_path)
+        dataset = dataset.set_coords('network')
 
     if X is not None:
       selected_subjects = X.reshape(-1).tolist()
-      selected_dataset = self.dataset_.sel(subject=selected_subjects)
-    else:
-      selected_dataset = self.dataset_
+      dataset = dataset.sel(subject=selected_subjects)
 
-    return selected_dataset
+    return dataset
 
   def get_feature_names_out(self, input_features):
     if not self.dataset_:
