@@ -7,8 +7,6 @@ channels:
 dependencies:
   - python
   - pip
-  - dvc
-  - dvc-ssh
   - ipykernel
   - ipywidgets
   - flake8
@@ -43,9 +41,5 @@ dependencies:
     # - nipype
     # - visbrain
     # - scikit-optimize
-    # - tune-sklearn
-    # - ray[tune]
-    # - ray[data]
-    # - ray
-    # - pyarrow
+    # - ray[default]
 

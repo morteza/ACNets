@@ -8,7 +8,6 @@ import pandas as pd
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import SelectFromModel, VarianceThreshold
 from sklearn.pipeline import Pipeline, make_union, FeatureUnion
 from sklearn.preprocessing import StandardScaler
@@ -192,33 +191,36 @@ class MultiScaleClassifier(Pipeline):
     def __init__(self,
                  atlas: str = 'dosenbach2010',
                  kind: str = 'partial correlation',
+                 k=1,
+                 classifier=XGBClassifier(),
                  memory=None, verbose=False):
 
         self.atlas = atlas
         self.kind = kind
+        self.k = k
+        self.classifier = classifier
         self.memory = memory
         self.verbose = verbose
 
+        super().__init__(self.get_classification_steps(), memory=memory, verbose=verbose)
+
+    def get_classification_steps(self):
+
         feature_extractors = [
             ('h1', ExtractH1Features.get_pipeline()),
-            ('h2', ExtractH2Features.get_pipeline(kind=kind)),
-            ('h3', ExtractH3Features.get_pipeline(kind=kind, k=1))
+            ('h2', ExtractH2Features.get_pipeline(kind=self.kind)),
+            ('h3', ExtractH3Features.get_pipeline(kind=self.kind, k=self.k))
         ]
 
-        _steps = [
-            ('parcellation', Parcellation(atlas_name=atlas)),
+        steps = [
+            ('parcellation', Parcellation(atlas_name=self.atlas)),
             ('extract_features', FeatureUnion(feature_extractors)),
             ('scale', StandardScaler()),
             ('zerovar', VarianceThreshold()),
-            # ('select', SelectFromModel(XGBClassifier(max_depth=3, n_estimators=100, learning_rate=0.1))),
-            ('clf', XGBClassifier())
+            ('clf', self.classifier)
         ]
 
-        super().__init__(_steps, memory=memory, verbose=verbose)
-
-    def fit(self, X, y=None, **fit_params):
-        super().fit(X, y, **fit_params)
-        return self
+        return steps
 
     def get_feature_extractor(self):
         return self[:2]
@@ -244,3 +246,7 @@ class MultiScaleClassifier(Pipeline):
             # Not an int, try get step by name
             return self.named_steps[ind]
         return est
+
+    def set_params(self, **kwargs):
+
+        return super().set_params(**kwargs)

@@ -7,8 +7,8 @@ import re
 
 def fetch_atlas(atlas_version_name='gordon2014',
                 resolution_mm=2,
-                data_dir='data/'):
-    """Fetch Gordon2022 atlas from the data directory.
+                data_dir='~/workspace/acnets/data/'):
+    """Fetch Gordon2014 atlas from the data directory.
 
     Parameters
     ----------
@@ -24,7 +24,7 @@ def fetch_atlas(atlas_version_name='gordon2014',
     Bunch
         With `labels` and `maps` attributes.
     """
-    data_dir = Path(data_dir) / atlas_version_name
+    data_dir = Path(data_dir).expanduser() / atlas_version_name
 
     labels = pd.read_csv(data_dir / 'Parcels.csv')
     
