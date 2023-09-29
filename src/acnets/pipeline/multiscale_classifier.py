@@ -40,8 +40,17 @@ class ExtractH1Features(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, dataset):
+        # TODO normalize timeseries
+
+        # features = []
+        # scaler = StandardScaler(with_std=False)
+        # for f in dataset['timeseries']:
+        #     f_norm = scaler.fit_transform(f.T)
+        #     features.append(f_norm.std(axis=1))
+        # features = np.array(features)
 
         features = dataset['timeseries'].mean('timepoint').values
+        # print(features.shape)
         return features
 
     def get_feature_names_out(self, input_features):
@@ -51,7 +60,6 @@ class ExtractH1Features(TransformerMixin, BaseEstimator):
     def get_pipeline(cls):
         pipe = Pipeline([
             ('h1_features', ExtractH1Features()),
-            # TODO normalize timeseries
         ])
         return pipe
 
@@ -207,16 +215,21 @@ class MultiScaleClassifier(Pipeline):
     def get_classification_steps(self):
 
         feature_extractors = [
-            ('h1', ExtractH1Features.get_pipeline()),
+            # ('h1', ExtractH1Features.get_pipeline()),
             ('h2', ExtractH2Features.get_pipeline(kind=self.kind)),
             ('h3', ExtractH3Features.get_pipeline(kind=self.kind, k=self.k))
         ]
+
+        feature_selector = 'passthrough'
+        if isinstance(self.classifier, LinearSVC):
+            feature_selector = SelectFromModel(self.classifier, threshold=-np.inf, max_features=30)
 
         steps = [
             ('parcellation', Parcellation(atlas_name=self.atlas)),
             ('extract_features', FeatureUnion(feature_extractors)),
             ('scale', StandardScaler()),
             ('zerovar', VarianceThreshold()),
+            ('select', feature_selector),
             ('clf', self.classifier)
         ]
 
