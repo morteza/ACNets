@@ -35,7 +35,7 @@ class ExtractH1Features(TransformerMixin, BaseEstimator):
 
     def fit(self, dataset, y=None):
 
-        self.feature_names = dataset['timeseries'].coords['region'].values
+        self.feature_names = dataset['timeseries'].coords['region'].values.tolist()
 
         return self
 
@@ -124,19 +124,19 @@ class ExtractH3Features(TransformerMixin, BaseEstimator):
 
         n_features = dataset['connectivity'].values.shape[1]
         # extract feature names
-        self.feature_names = pd.DataFrame(
+        feature_names = pd.DataFrame(
             data=np.zeros((n_features, n_features)),
             columns=dataset[node_type + '_src'],
             index=dataset[node_type + '_dst'])
 
         sep = ' \N{left right arrow} '
-        self.feature_names = (self.feature_names
-                                  .stack().to_frame()
-                                  .apply(
-                                      lambda x: sep.join(x.name), axis=1)
-                                  .unstack()).values
-        self.feature_names = self.feature_names[np.triu_indices(self.feature_names.shape[0],
-                                                                k=self.k)].tolist()
+        feature_names = (feature_names.stack()
+                                      .to_frame()
+                                      .apply(lambda x: sep.join(x.name), axis=1)
+                                      .unstack()).values
+
+        triu_indices = np.triu_indices(feature_names.shape[0], k=self.k)
+        self.feature_names = feature_names[triu_indices].tolist()
 
         return self
 
@@ -201,12 +201,18 @@ class MultiScaleClassifier(Pipeline):
                  kind: str = 'partial correlation',
                  k=1,
                  classifier=XGBClassifier(),
+                 extract_h1_features=True,
+                 extract_h2_features=True,
+                 extract_h3_features=True,
                  memory=None, verbose=False):
 
         self.atlas = atlas
         self.kind = kind
         self.k = k
         self.classifier = classifier
+        self.extract_h1_features = extract_h1_features
+        self.extract_h2_features = extract_h2_features
+        self.extract_h3_features = extract_h3_features
         self.memory = memory
         self.verbose = verbose
 
@@ -214,12 +220,16 @@ class MultiScaleClassifier(Pipeline):
 
     def get_classification_steps(self):
 
-        feature_extractors = [
-            # ('h1', ExtractH1Features.get_pipeline()),
-            ('h2', ExtractH2Features.get_pipeline(kind=self.kind)),
-            ('h3', ExtractH3Features.get_pipeline(kind=self.kind, k=self.k))
-        ]
+        feature_extractors = []
 
+        if self.extract_h1_features:
+            feature_extractors.append(('h1', ExtractH1Features.get_pipeline()))
+        if self.extract_h2_features:
+            feature_extractors.append(('h2', ExtractH2Features.get_pipeline(kind=self.kind)))
+        if self.extract_h3_features:
+            feature_extractors.append(('h3', ExtractH3Features.get_pipeline(kind=self.kind, k=self.k)))
+
+        # only enable feature selection for SVM models
         feature_selector = 'passthrough'
         if isinstance(self.classifier, LinearSVC):
             feature_selector = SelectFromModel(self.classifier, threshold=-np.inf, max_features=30)
@@ -242,7 +252,7 @@ class MultiScaleClassifier(Pipeline):
         return self[2:]
 
     def get_feature_names_out(self, input_features=None):
-        return self.get_feature_extractor().get_feature_names_out(input_features)
+        return list(self.get_feature_extractor().get_feature_names_out(input_features))
 
     def __getitem__(self, ind):
         """This is a slight modification of `Pipeline.__getitem__` to avoid copying the steps.
@@ -261,5 +271,6 @@ class MultiScaleClassifier(Pipeline):
         return est
 
     def set_params(self, **kwargs):
-
-        return super().set_params(**kwargs)
+        super().set_params(**kwargs)
+        super().__init__(self.get_classification_steps(), memory=self.memory, verbose=self.verbose)
+        return self
