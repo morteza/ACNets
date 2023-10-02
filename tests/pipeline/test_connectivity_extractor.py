@@ -12,7 +12,7 @@ from src.acnets.pipeline import Parcellation, ConnectivityExtractor
     ('difumo_64_2mm', 'tangent'),
 ])
 def test_connectivity_extractor(atlas_name, kind):
-  
+
   dataset = Parcellation(atlas_name=atlas_name).fit().dataset
   timeseries = dataset['timeseries'].values
 
