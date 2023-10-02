@@ -4,42 +4,59 @@
 name: acnets
 channels:
   - conda-forge
+
 dependencies:
+
+  # GENERAL
   - python
   - pip
   - ipykernel
   - ipywidgets
   - flake8
   - watermark
-  - dvc
-  - dvc-ssh
-  - pandas
-  - scikit-learn
-  - nilearn
-  - matplotlib
-  - seaborn
-  - shap
-  - xarray
-  - netcdf4
-  - h5netcdf
-  - networkx
-  - py-xgboost
+
+  # TEST
   - pytest
   - pytest-cov
   - pytest-mpl
+
+  # DATA
+  - dvc
+  - dvc-ssh
+  - pandas
+  - xarray
+  - netcdf4
+  - h5netcdf
+
+  # VISUALIZATION
+  - matplotlib
+  - seaborn
+
+  # ML
+  - scikit-learn
+  - shap
+  # - networkx
+  - py-xgboost
+
+  # HPO
+  # - ray-tune
+  # - tune-sklearn
+  # - hyperopt
+
+  # fMRI
   - pybids
-  - ray-tune
-  - tune-sklearn
-  - hyperopt
+  - nilearn
+
   # - dcm2niix
   # - heudiconv=0.8.0
   # - fmriprep-docker
-  # - pip:
+
+  - pip:
+    - ray[tune]
+    # - tune-sklearn
     # - umap-learn
     # - plotly
     # - fastcluster
     # - nipype
     # - visbrain
-    # - scikit-optimize
-    # - ray[default]
 
