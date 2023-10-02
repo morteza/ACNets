@@ -23,7 +23,7 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
   def transform(self, dataset):
 
     if self.strategy is None:
-      return dataset
+      return dataset.copy()
 
     new_dataset = dataset.copy()
 

@@ -50,7 +50,6 @@ class ExtractH1Features(TransformerMixin, BaseEstimator):
         # features = np.array(features)
 
         features = dataset['timeseries'].mean('timepoint').values
-        # print(features.shape)
         return features
 
     def get_feature_names_out(self, input_features):
@@ -204,7 +203,8 @@ class MultiScaleClassifier(Pipeline):
                  extract_h1_features=True,
                  extract_h2_features=True,
                  extract_h3_features=True,
-                 memory=None, verbose=False):
+                 memory=None, verbose=False,
+                 **kwargs):
 
         self.atlas = atlas
         self.kind = kind

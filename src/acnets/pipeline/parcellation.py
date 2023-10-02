@@ -168,7 +168,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
       dataset = self.create_dataset(time_series)
       self.cache_dataset(dataset, overwrite=False)
     else:
-      dataset = xr.open_dataset(cached_ds_path)
+      dataset = xr.open_dataset(cached_ds_path, engine='h5netcdf')
       self.feature_names_ = dataset.coords['region'].values.tolist()
 
     return self
@@ -200,7 +200,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if self.cache_dir:
       cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
       if cached_ds_path.exists():
-        dataset = xr.open_dataset(cached_ds_path)
+        dataset = xr.open_dataset(cached_ds_path, engine='h5netcdf')
         dataset = dataset.set_coords('network')
 
     if X is not None:
