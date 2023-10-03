@@ -37,6 +37,7 @@ dependencies:
   - shap
   # - networkx
   - py-xgboost
+  - scikit-explain
 
   # HPO
   # - ray-tune
