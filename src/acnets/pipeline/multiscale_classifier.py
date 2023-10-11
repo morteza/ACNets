@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from os import PathLike
-from typing import Iterable
+from typing import Iterable, Literal
 
 import numpy as np
 from numpy import ndarray
@@ -75,18 +75,38 @@ class ExtractH2Features(TransformerMixin, BaseEstimator):
 
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, subset: Literal['within', 'between']):
+        self.subset = subset
 
     def fit(self, dataset, y=None):
         return self
 
     def transform(self, dataset):
-        node_type = dataset['connectivity'].dims[-1]
-        self.feature_names = dataset['connectivity'].coords[node_type].values.tolist()
 
-        conn_vec = np.array([np.diag(conn)
-                             for conn in dataset['connectivity'].values])
+        if self.subset == 'within':
+            self.feature_names = dataset['connectivity'].coords['network_src'].values.tolist()
+
+            conn_vec = np.array([np.diag(conn)
+                                for conn in dataset['connectivity'].values])
+        elif self.subset == 'between':
+
+            n_features = dataset['connectivity'].values.shape[1]
+            triu_indices = np.triu_indices(n_features, k=1)
+
+            conn_vec = np.array([conn[triu_indices]
+                                for conn in dataset['connectivity'].values])
+
+            # extract feature names
+            feature_names = pd.DataFrame(
+                data=np.zeros((n_features, n_features)),
+                columns=dataset['network_src'],
+                index=dataset['network_dst'])
+
+            sep = ' \N{left right arrow} '
+            self.feature_names = (feature_names.stack()
+                                          .to_frame()
+                                          .apply(lambda x: sep.join(x.name), axis=1)
+                                          .unstack()).values[triu_indices].tolist()
 
         return conn_vec
 
@@ -94,12 +114,14 @@ class ExtractH2Features(TransformerMixin, BaseEstimator):
         return self.feature_names
 
     @classmethod
-    def get_pipeline(cls, kind='partial correlation'):
+    def get_pipeline(cls,
+                     kind='partial correlation',
+                     subset: Literal['within', 'between'] = 'within'):
         pipe = Pipeline([
             # ('aggregate_timeseries', TimeseriesAggregator(strategy=None)),
             ('extract_connectivity', ConnectivityExtractor(kind=kind)),
             ('aggregate_connectivity', ConnectivityAggregator(strategy='network')),
-            ('h2_features', ExtractH2Features())
+            ('h2_features', ExtractH2Features(subset=subset))
         ])
         return pipe
 
@@ -225,7 +247,10 @@ class MultiScaleClassifier(Pipeline):
         if self.extract_h1_features:
             feature_extractors.append(('h1', ExtractH1Features.get_pipeline()))
         if self.extract_h2_features:
-            feature_extractors.append(('h2', ExtractH2Features.get_pipeline(kind=self.kind)))
+            feature_extractors.append(('h2_within',
+                                       ExtractH2Features.get_pipeline(kind=self.kind, subset='within')))
+            feature_extractors.append(('h2_between',
+                                       ExtractH2Features.get_pipeline(kind=self.kind, subset='between')))
         if self.extract_h3_features:
             feature_extractors.append(('h3', ExtractH3Features.get_pipeline(kind=self.kind, k=self.k)))
 
