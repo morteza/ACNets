@@ -19,7 +19,7 @@ class ExtraConnectivityMeasure(connectome.ConnectivityMeasure):
     elif kind == 'chatterjee':
       pass
     else:
-      super().__init__(cov_estimator, kind, vectorize, discard_diagonal)
+      super().__init__(cov_estimator, kind, vectorize, discard_diagonal, standardize='zscore_sample')
 
   def fit(self, X, y=None):
     if self.kind in ['transfer_entropy', 'chatterjee']:

@@ -43,10 +43,16 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
     # defaults to take absolute value of connectivity matrices
     new_dataset['connectivity'] = np.fabs(new_dataset['connectivity'])
 
+    # set self-connections to NaN (i.e., diagonal values)
+    conn = new_dataset['connectivity'].data
+    np.einsum('ijj->ij', conn)[...] = np.nan
+    new_dataset['connectivity'].data = conn
+
+    # now aggregate region-level connectivity into network-level connectivity
     new_dataset['connectivity'] = (
         new_dataset['connectivity']
-        .groupby('network_src').mean('region_src')
-        .groupby('network_dst').mean('region_dst')
+        .groupby('network_src').mean('region_src', skipna=True)
+        .groupby('network_dst').mean('region_dst', skipna=True)
     )
     return new_dataset
 

@@ -96,7 +96,7 @@ class ExtractH2Features(TransformerMixin, BaseEstimator):
     @classmethod
     def get_pipeline(cls, kind='partial correlation'):
         pipe = Pipeline([
-            ('aggregate_timeseries', TimeseriesAggregator(strategy=None)),
+            # ('aggregate_timeseries', TimeseriesAggregator(strategy=None)),
             ('extract_connectivity', ConnectivityExtractor(kind=kind)),
             ('aggregate_connectivity', ConnectivityAggregator(strategy='network')),
             ('h2_features', ExtractH2Features())
