@@ -84,5 +84,14 @@ def load_dosenbach2010_masker(t_r=None):
 
   atlas_labels = atlas_labels.reindex(atlas_dict['labels'])
 
+  atlas_labels['network'] = atlas_labels['network'].map({
+      'fronto-parietal': 'FPN',
+      'default': 'DMN',
+      'cingulo-opercular': 'CON',
+      'sensorimotor': 'SMN',
+      'occipital': 'VIS',
+      'cerebellum': 'CER',
+  })
+
   # TODO return Bunch instead
   return masker, atlas_labels
