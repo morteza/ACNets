@@ -22,7 +22,7 @@ _masker_funcs = {
 
 
 class Parcellation(TransformerMixin, BaseEstimator):
-  """ to parcellate activities given an atlas.
+  """ parcellate voxel-wise timeseries for a given atlas.
   """
 
   def __init__(self,
@@ -132,21 +132,21 @@ class Parcellation(TransformerMixin, BaseEstimator):
         'subject': preprocessed_subjects,
     })
 
-    # participants dataset
-    # TODO path to the bids must be used here
-    _bids_participants_path = Path(self.bids_dir).expanduser() / 'participants.tsv'
-    bids_participants = pd.read_csv(_bids_participants_path, sep='\t')
-    bids_participants.rename(columns={'participant_id': 'subject'}, inplace=True)
+    # participants
+    participants = pd.read_csv(Path(self.bids_dir).expanduser() / 'participants.tsv',
+                               sep='\t')
+
     # remove "sub-" prefix
-    bids_participants['subject'] = bids_participants['subject'].apply(lambda x: x.split('-')[1])
-    bids_participants.set_index('subject', inplace=True)
-    bids_participants = bids_participants.query('index in @preprocessed_subjects')
-    participants_ds = bids_participants.to_xarray()
+    participants['participant_id'] = \
+        participants['participant_id'].apply(lambda x: x.replace('sub-', ''))
+    participants = participants.query('index in @preprocessed_subjects')
+    participants = participants.rename(columns={'participant_id': 'subject'})
+    participants.set_index('subject', inplace=True)
 
-    # merge arrays into a single dataset
-    _ds = xr.merge([timeseries_ds, participants_ds, atlas_ds])
+    # merge data into a single dataset
+    dataset = xr.merge([timeseries_ds, participants.to_xarray(), atlas_ds])
 
-    return _ds
+    return dataset
 
   def cache_dataset(self, dataset, overwrite=False):
 
@@ -201,7 +201,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
       cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
       if cached_ds_path.exists():
         dataset = xr.open_dataset(cached_ds_path, engine='h5netcdf')
-        dataset = dataset.set_coords('network')
+        dataset = dataset.set_coords('region')
 
     if X is not None:
       selected_subjects = X.reshape(-1).tolist()

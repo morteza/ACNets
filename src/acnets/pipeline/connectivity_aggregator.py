@@ -24,7 +24,7 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
     new_dataset = dataset
 
     if self.strategy is None:
-      return self
+      return new_dataset
 
     node_type = new_dataset['timeseries'].dims[-1]
 

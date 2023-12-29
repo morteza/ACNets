@@ -26,6 +26,7 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
       return dataset.copy()
 
     new_dataset = dataset.copy()
+    new_dataset = new_dataset.set_coords('network')
 
     if self.strategy == 'random_network':
       new_dataset['network'] = (['region'],

@@ -57,6 +57,8 @@ def load_masker(atlas_name, mask_img, t_r=3.0):
         atlas.maps,
         labels=['0'] + [str(lbl) for lbl in atlas.labels.index],
         mask_img=mask_img,
+        standardize='zscore_sample',
+        standardize_confounds='zscore_sample',
         # detrend=True,
         # standardize=True,
         # t_r=t_r,
