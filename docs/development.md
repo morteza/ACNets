@@ -19,7 +19,7 @@ mamba activate acnets
 
 2. **Attach the datasets**: ACNets datasets are huge in size, thereby managed separately by DVC. Use the following command to download the datasets:
 
-```
+```bash
 dvc pull
 ```
 
@@ -29,4 +29,4 @@ ACNets is best used in tandem with Jupyter notebooks, so look into the [notebook
 
 Make sure you use file paths that are relative to the project root, so it will be always safe to assume project root is your working directory (as provided by the `pwd` command).
 
-The only exception is when you are developing notebooks in tools other than VSCode. In that case you need to address resources relative to the notebook path. There are however workarounds to solve that. See [running notebooks](running_notebooks.md) for possible solutions.
+The only exception is when you are developing notebooks in tools other than VSCode. In that case you need to address resources relative to the notebook path. There are however workarounds to solve that. See [notebooks](notebooks.md) for possible solutions.

@@ -17,7 +17,7 @@ mamba activate acnets
 You can access all the data using DVC. To download the data, model checkpoints, and outputs from [Uni.lu HPC](https://hpc.uni.lu), please use the following command:
 
 ```bash
-dvc pull
+dvc pulls
 ```
 
 Upon completion, you should see the following folders: `data/`, `models/`, and `outputs/`.
