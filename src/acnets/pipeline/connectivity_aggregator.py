@@ -55,7 +55,6 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
     )
 
     # TODO extract feature names
-    self.feature_name_ = new_dataset.coords['network'].values.tolist()
 
     return new_dataset
 
