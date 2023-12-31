@@ -16,7 +16,6 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
     super().__init__()
 
   def fit(self, dataset, y=None, **fit_params):
-    self.feature_name_ = dataset.coords['network'].values.tolist()
     return self
 
   def transform(self, dataset):
@@ -30,7 +29,7 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
 
     # we need region-level connectivity matrices to aggregate
     if node_type != 'region':
-      raise ValueError(f'Time-series are already aggregated. '
+      raise ValueError(f'Time-series are already aggregated (node_type={node_type}). '
                        f'Connectivity aggregation strategy `{self.strategy}` is not supported.')
 
     if self.strategy == 'random_network':
@@ -54,6 +53,10 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
         .groupby('network_src').mean('region_src', skipna=True)
         .groupby('network_dst').mean('region_dst', skipna=True)
     )
+
+    # TODO extract feature names
+    self.feature_name_ = new_dataset.coords['network'].values.tolist()
+
     return new_dataset
 
   def get_feature_names_out(self, input_features=None):
