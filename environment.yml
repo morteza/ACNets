@@ -3,6 +3,7 @@
 
 name: acnets
 channels:
+  - pytorch
   - conda-forge
 
 dependencies:
@@ -38,6 +39,7 @@ dependencies:
   # - networkx
   - py-xgboost
   - scikit-explain
+  - ray-tune
 
   # HPO
   # - ray-tune
@@ -47,13 +49,17 @@ dependencies:
   # fMRI
   - pybids
   - nilearn
+  
+  # deep learning
+  - pytorch
+  - pytorch-lightning
+  - tensorboard
 
   # - dcm2niix
   # - heudiconv=0.8.0
   # - fmriprep-docker
 
   - pip:
-    - ray[tune]
     # - tune-sklearn
     # - umap-learn
     # - plotly
