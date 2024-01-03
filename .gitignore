@@ -166,3 +166,4 @@ tmp/
 /models
 /outputs
 *.bkp
+lightning_logs/

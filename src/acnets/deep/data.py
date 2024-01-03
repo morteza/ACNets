@@ -1,3 +1,4 @@
+import os
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import random_split, DataLoader, TensorDataset, ConcatDataset
@@ -8,10 +9,10 @@ from ..pipeline import Parcellation, ConnectivityExtractor, TimeseriesAggregator
 
 class ACNetsDataModule(pl.LightningDataModule):
     def __init__(self,
-                    atlas='dosenbach2010',
-                    kind='partial correlation',
-                    test_ratio=.25, val_ratio=.125,
-                    suffle=True, batch_size=8):
+                 atlas='dosenbach2010',
+                 kind='partial correlation',
+                 test_ratio=.25, val_ratio=.125,
+                 suffle=True, batch_size=8, num_workers=os.cpu_count() - 1):
         super().__init__()
         self.atlas = atlas
         self.kind = kind
@@ -21,7 +22,7 @@ class ACNetsDataModule(pl.LightningDataModule):
         self.shuffle = suffle
         self.batch_size = batch_size
         self.y_encoder = LabelEncoder()
-
+        self.num_workers = num_workers
 
     def prepare_data(self):
         h1_time_regions = Parcellation(atlas_name=self.atlas).fit_transform(X=None)
@@ -54,14 +55,18 @@ class ACNetsDataModule(pl.LightningDataModule):
         pass
 
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size, shuffle=self.shuffle)
+        return DataLoader(self.train, batch_size=self.batch_size,
+                          shuffle=self.shuffle, num_workers=self.num_workers,
+                          persistent_workers=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val, batch_size=self.batch_size, shuffle=self.shuffle)
+        return DataLoader(self.val, batch_size=self.batch_size,
+                          shuffle=False, num_workers=self.num_workers,
+                          persistent_workers=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size, shuffle=self.shuffle)
-
+        return DataLoader(self.test, batch_size=self.batch_size,
+                          shuffle=False, num_workers=self.num_workers)
 
     # TODO WIP: reshape as tidy dataframes
 
