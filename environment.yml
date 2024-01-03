@@ -4,6 +4,7 @@
 name: acnets
 channels:
   - pytorch
+  - nvidia
   - conda-forge
 
 dependencies:
@@ -52,14 +53,16 @@ dependencies:
   
   # deep learning
   - pytorch
+  - pytorch-cuda=12.1  # optional
   - pytorch-lightning
   - tensorboard
 
+  # extra fMRI tools
   # - dcm2niix
   # - heudiconv=0.8.0
   # - fmriprep-docker
 
-  - pip:
+  # - pip:
     # - tune-sklearn
     # - umap-learn
     # - plotly
