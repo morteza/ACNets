@@ -9,16 +9,16 @@ from sklearn.model_selection import train_test_split
 
 
 class ACNetsDataModule(pl.LightningDataModule):
-    """_summary_
+    """Julia2018 dataset.
 
     Data
     ----
-    - h1: time-series (regions x timepoints)
-    - h2: connectivity (regions x regions)
-    - h3: time-series (networks x timepoints)
-    - h4: connectivity (networks x networks)
-    - h5: connectivity (networks x networks)
-
+    - x1: time-series (regions x timepoints)
+    - x2: connectivity (regions x regions)
+    - x3: time-series (networks x timepoints)
+    - x4: connectivity (networks x networks)
+    - x5: connectivity (networks x networks)
+    - y: subject labels (AVGP or NVGP)
 
     """
     def __init__(self,
@@ -43,22 +43,22 @@ class ACNetsDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
-            h1_time_regions = Parcellation(atlas_name=self.atlas).fit_transform(X=None)
-            h2_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(h1_time_regions)
-            h3_time_networks = TimeseriesAggregator(strategy='network').fit_transform(h1_time_regions)
-            h4_conn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(h3_time_networks)
-            h5_conn_networks = ConnectivityAggregator(strategy='network').fit_transform(h2_conn_regions)
-            h1 = torch.Tensor(h1_time_regions['timeseries'].values)
-            h2 = torch.Tensor(h2_conn_regions['connectivity'].values)
-            h3 = torch.Tensor(h3_time_networks['timeseries'].values)
-            h4 = torch.Tensor(h4_conn_networks['connectivity'].values)
-            h5 = torch.Tensor(h5_conn_networks['connectivity'].values)
+            x1_time_regions = Parcellation(atlas_name=self.atlas).fit_transform(X=None)
+            x2_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x1_time_regions)
+            x3_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x1_time_regions)
+            x4_conn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x3_time_networks)
+            x5_conn_networks = ConnectivityAggregator(strategy='network').fit_transform(x2_conn_regions)
+            x1 = torch.Tensor(x1_time_regions['timeseries'].values)
+            x2 = torch.Tensor(x2_conn_regions['connectivity'].values)
+            x3 = torch.Tensor(x3_time_networks['timeseries'].values)
+            x4 = torch.Tensor(x4_conn_networks['connectivity'].values)
+            x5 = torch.Tensor(x5_conn_networks['connectivity'].values)
 
             # extract subject labels (AVGP or NVGP)
-            y = self.y_encoder.fit_transform([s[:4] for s in h1_time_regions['subject'].values])
+            y = self.y_encoder.fit_transform([s[:4] for s in x1_time_regions['subject'].values])
             y = torch.tensor(y)
 
-            self.full_data = TensorDataset(h1, h2, h3, h4, h5, y)
+            self.full_data = TensorDataset(x1, x2, x3, x4, x5, y)
 
             # stratified split into train, val and test
             n_subjects = len(y)
@@ -77,25 +77,15 @@ class ACNetsDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size,
-                          shuffle=self.shuffle, num_workers=self.num_workers,
+                          num_workers=self.num_workers,
                           persistent_workers=True)
 
     def val_dataloader(self):
-        # Note this is the same as the test dataloader (change to self.val for separate validation set)
+        # FIXME Note this is the same as the test dataloader (change to self.val for separate validation set)
         return DataLoader(self.test, batch_size=self.batch_size,
-                          shuffle=False, num_workers=self.num_workers,
+                          num_workers=self.num_workers,
                           persistent_workers=True)
 
     def test_dataloader(self):
         return DataLoader(self.test, batch_size=self.batch_size,
-                          shuffle=False, num_workers=self.num_workers)
-
-    # TODO WIP: reshape as tidy dataframes
-
-    # h1
-    # h1 = h1_time_regions['timeseries'].to_dataframe().reset_index().pivot(index=['subject', 'region'], columns='timepoint')
-    # h1.columns = h1.columns.droplevel(0)
-
-    # h3
-    # h3 = h3_time_networks['timeseries'].to_dataframe().reset_index().pivot(index=['subject', 'network'], columns='timepoint')
-    # h3.columns = h3.columns.droplevel(0)
+                          num_workers=self.num_workers)
