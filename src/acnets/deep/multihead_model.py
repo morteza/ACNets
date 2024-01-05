@@ -7,7 +7,7 @@ from .seq2seq import Seq2SeqAutoEncoder
 
 
 class MultiHeadModel(pl.LightningModule):
-    def __init__(self, n_regions, n_networks, n_embeddings=32):
+    def __init__(self, n_regions, n_networks, n_embeddings=2):
         super().__init__()
 
         self.n_regions = n_regions
@@ -48,7 +48,7 @@ class MultiHeadModel(pl.LightningModule):
         )
 
         self.cls_head = nn.Sequential(
-            nn.Linear(n_embeddings * 5, n_embeddings),
+            nn.Linear(n_embeddings * 3, n_embeddings),
             nn.ReLU(),
             nn.Dropout(.2),
             nn.Linear(n_embeddings, 2),
@@ -69,7 +69,7 @@ class MultiHeadModel(pl.LightningModule):
 
         h5 = self.x5_head(x5)
 
-        h = torch.cat([h1, h2, h3, h4, h5], dim=1)
+        h = torch.cat([h3, h4, h5], dim=1)
         y = self.cls_head(h)
 
         return y, x1_recon, x3_recon
@@ -78,8 +78,9 @@ class MultiHeadModel(pl.LightningModule):
         x1, x2, x3, x4, x5, y = batch
         y_hat, x1_recon, x3_recon = self(x1, x2, x3, x4, x5)
         loss_cls = F.cross_entropy(y_hat, y)
-        loss_recon_x1 = F.mse_loss(x1_recon, x1) / 100000
-        loss_recon_x3 = F.mse_loss(x3_recon, x3) / 100000
+        # loss_recon_x1 = F.mse_loss(x1_recon, x1) / 100000
+        # loss_recon_x3 = F.mse_loss(x3_recon, x3) / 100000
+        loss_recon_x1 = loss_recon_x3 = 0  # DEBUG
         loss = loss_cls + loss_recon_x1 + loss_recon_x3
 
         accuracy = self.train_accuracy(y_hat, y)
