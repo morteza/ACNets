@@ -20,48 +20,31 @@ class MultiHeadModel(pl.LightningModule):
         # X1 (region-level timeseries)
         self.x1_autoencoder = Seq2SeqAutoEncoder(n_regions, n_embeddings)
         self.x1_head = nn.Sequential(
-            nn.Linear(n_embeddings, n_embeddings),
-            nn.ReLU(),
-            nn.Dropout(.2),
             nn.Linear(n_embeddings, n_embeddings)
         )
 
         # X2 (region-level connectivity)
         self.x2_head = nn.Sequential(
             nn.Flatten(start_dim=1),
-            nn.Linear(n_regions * n_regions, n_embeddings),
-            nn.ReLU(),
-            nn.Dropout(.2),
-            nn.Linear(n_embeddings, n_embeddings),
-            nn.ReLU(),
-            nn.Dropout(.2)
+            nn.Linear(n_regions * n_regions, n_embeddings)
         )
 
         # X3 (network-level timeseries)
         self.x3_autoencoder = Seq2SeqAutoEncoder(n_networks, n_embeddings)
         self.x3_head = nn.Sequential(
-            nn.Linear(n_embeddings, n_embeddings),
-            nn.ReLU(),
-            nn.Dropout(.2),
             nn.Linear(n_embeddings, n_embeddings)
         )
 
         # X4 (network-level connectivity)
         self.x4_head = nn.Sequential(
             nn.Flatten(start_dim=1),
-            nn.Linear(n_networks * n_networks, self.n_embeddings),
-            nn.ReLU(),
-            nn.Dropout(.2),
-            nn.Linear(self.n_embeddings, self.n_embeddings)
+            nn.Linear(n_networks * n_networks, n_embeddings)
         )
 
         # X5 (averaged network-level connectivity)
         self.x5_head = nn.Sequential(
             nn.Flatten(start_dim=1),
-            nn.Linear(n_networks * n_networks, self.n_embeddings),
-            nn.ReLU(),
-            nn.Dropout(.2),
-            nn.Linear(self.n_embeddings, self.n_embeddings)
+            nn.Linear(n_networks * n_networks, n_embeddings)
         )
 
         self.cls_head = nn.Sequential(
@@ -96,7 +79,7 @@ class MultiHeadModel(pl.LightningModule):
         y_hat, x1_recon, x3_recon = self(x1, x2, x3, x4, x5)
         loss_cls = F.cross_entropy(y_hat, y)
         loss_recon_x1 = F.mse_loss(x1_recon, x1) / 100000
-        loss_recon_x3 = F.mse_loss(x3_recon, x3)
+        loss_recon_x3 = F.mse_loss(x3_recon, x3) / 100000
         loss = loss_cls + loss_recon_x1 + loss_recon_x3
 
         accuracy = self.train_accuracy(y_hat, y)
