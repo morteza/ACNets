@@ -4,6 +4,7 @@ from torch import nn
 import pytorch_lightning as pl
 import torchmetrics as metrics
 from .seq2seq import Seq2SeqAutoEncoder
+from .vae import VariationalAutoEncoder
 
 
 class MultiHeadModel(pl.LightningModule):
@@ -26,7 +27,7 @@ class MultiHeadModel(pl.LightningModule):
         # X2 (region-level connectivity)
         self.x2_head = nn.Sequential(
             nn.Flatten(start_dim=1),
-            nn.Linear(n_regions * n_regions, n_embeddings)
+            VariationalAutoEncoder(n_regions * n_regions, n_embeddings)
         )
 
         # X3 (network-level timeseries)
@@ -38,13 +39,13 @@ class MultiHeadModel(pl.LightningModule):
         # X4 (network-level connectivity)
         self.x4_head = nn.Sequential(
             nn.Flatten(start_dim=1),
-            nn.Linear(n_networks * n_networks, n_embeddings)
+            VariationalAutoEncoder(n_networks * n_networks, n_embeddings)
         )
 
         # X5 (averaged network-level connectivity)
         self.x5_head = nn.Sequential(
             nn.Flatten(start_dim=1),
-            nn.Linear(n_networks * n_networks, n_embeddings)
+            VariationalAutoEncoder(n_networks * n_networks, n_embeddings)
         )
 
         self.cls_head = nn.Sequential(
@@ -57,33 +58,34 @@ class MultiHeadModel(pl.LightningModule):
 
     def forward(self, x1, x2, x3, x4, x5):
 
-        h1, x1_recon = self.x1_autoencoder(x1)
-        h1 = self.x1_head(h1)
+        # h1, x1_recon = self.x1_autoencoder(x1)
+        # h1 = self.x1_head(h1)
 
-        h2 = self.x2_head(x2)
+        h2, x2_recon = self.x2_head(x2)
 
-        h3, x3_recon = self.x3_autoencoder(x3)
-        h3 = self.x3_head(h3)
+        # h3, x3_recon = self.x3_autoencoder(x3)
+        # h3 = self.x3_head(h3)
 
-        h4 = self.x4_head(x4)
+        h4, x4_recon = self.x4_head(x4)
+        h5, x5_recon = self.x5_head(x5)
 
-        h5 = self.x5_head(x5)
-
-        h = torch.cat([h3, h4, h5], dim=1)
+        h = torch.cat([h2, h4, h5], dim=1)
         y = self.cls_head(h)
 
-        return y, x1_recon, x3_recon
+        return y, x2_recon, x4_recon, x5_recon
 
     def training_step(self, batch, batch_idx):
         x1, x2, x3, x4, x5, y = batch
-        y_hat, x1_recon, x3_recon = self(x1, x2, x3, x4, x5)
+        y_hat, x2_recon, x4_recon, x5_recon = self(x1, x2, x3, x4, x5)
         loss_cls = F.cross_entropy(y_hat, y)
-        # loss_recon_x1 = F.mse_loss(x1_recon, x1) / 100000
-        # loss_recon_x3 = F.mse_loss(x3_recon, x3) / 100000
-        loss_recon_x1 = loss_recon_x3 = 0  # DEBUG
-        loss = loss_cls + loss_recon_x1 + loss_recon_x3
+        loss_recon2 = F.mse_loss(x2_recon, x1)
+        loss_recon4 = F.mse_loss(x4_recon, x3)
+        loss_recon5 = F.mse_loss(x5_recon, x1)
+
+        loss = loss_cls + loss_recon2 + loss_recon4 + loss_recon5
 
         accuracy = self.train_accuracy(y_hat, y)
+        self.val_accuracy.reset()
 
         self.log('train/loss_cls', loss_cls)
         # self.log('train/loss_recon', loss_recon)
@@ -99,10 +101,11 @@ class MultiHeadModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x1, x2, x3, x4, x5, y = batch
-        y_hat, *_ = self(x1, x2, x3, x4, x5)
+        y_hat, *ـ = self(x1, x2, x3, x4, x5)
         loss_cls = F.cross_entropy(y_hat, y)
 
         accuracy = self.val_accuracy(y_hat, y.float())
+        self.val_accuracy.reset()
         dropout_accuracy = self.calculate_dropout_accuracy(batch)
 
         self.log('val/loss_cls', loss_cls)
@@ -111,10 +114,11 @@ class MultiHeadModel(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         x1, x2, x3, x4, x5, y = batch
-        y_hat, *_ = self(x1, x2, x3, x4, x5)
+        y_hat, *ـ = self(x1, x2, x3, x4, x5)
         loss_cls = F.cross_entropy(y_hat, y)
 
         accuracy = self.val_accuracy(y_hat, y)
+        self.val_accuracy.reset()
         dropout_accuracy = self.calculate_dropout_accuracy(batch)
 
         self.log('test/loss_cls', loss_cls)
@@ -127,6 +131,7 @@ class MultiHeadModel(pl.LightningModule):
 
         accuracy = 0
         for _ in range(n_repeats):
+            self.val_accuracy.reset()
             y_hat, *_ = self(x1, x2, x3, x4, x5)
             accuracy += self.val_accuracy(y_hat, y)
         accuracy /= n_repeats
