@@ -19,10 +19,10 @@ class MultiHeadModel(pl.LightningModule):
         self.val_accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
 
         # X1 (region-level timeseries)
-        self.x1_autoencoder = Seq2SeqAutoEncoder(n_regions, n_embeddings)
-        self.x1_head = nn.Sequential(
-            nn.Linear(n_embeddings, n_embeddings)
-        )
+        # self.x1_autoencoder = Seq2SeqAutoEncoder(n_regions, n_embeddings)
+        # self.x1_head = nn.Sequential(
+        #     nn.Linear(n_embeddings, n_embeddings)
+        # )
 
         # X2 (region-level connectivity)
         self.x2_head = nn.Sequential(
@@ -31,10 +31,10 @@ class MultiHeadModel(pl.LightningModule):
         )
 
         # X3 (network-level timeseries)
-        self.x3_autoencoder = Seq2SeqAutoEncoder(n_networks, n_embeddings)
-        self.x3_head = nn.Sequential(
-            nn.Linear(n_embeddings, n_embeddings)
-        )
+        # self.x3_autoencoder = Seq2SeqAutoEncoder(n_networks, n_embeddings)
+        # self.x3_head = nn.Sequential(
+        #     nn.Linear(n_embeddings, n_embeddings)
+        # )
 
         # X4 (network-level connectivity)
         self.x4_head = nn.Sequential(
@@ -62,12 +62,16 @@ class MultiHeadModel(pl.LightningModule):
         # h1 = self.x1_head(h1)
 
         h2, x2_recon = self.x2_head(x2)
+        x2_recon = x2_recon.view(-1, self.n_regions, self.n_regions)
 
         # h3, x3_recon = self.x3_autoencoder(x3)
         # h3 = self.x3_head(h3)
 
         h4, x4_recon = self.x4_head(x4)
+        x4_recon = x4_recon.view(-1, self.n_networks, self.n_networks)
+
         h5, x5_recon = self.x5_head(x5)
+        x5_recon = x5_recon.view(-1, self.n_networks, self.n_networks)
 
         h = torch.cat([h2, h4, h5], dim=1)
         y = self.cls_head(h)
@@ -78,9 +82,9 @@ class MultiHeadModel(pl.LightningModule):
         x1, x2, x3, x4, x5, y = batch
         y_hat, x2_recon, x4_recon, x5_recon = self(x1, x2, x3, x4, x5)
         loss_cls = F.cross_entropy(y_hat, y)
-        loss_recon2 = F.mse_loss(x2_recon, x1)
-        loss_recon4 = F.mse_loss(x4_recon, x3)
-        loss_recon5 = F.mse_loss(x5_recon, x1)
+        loss_recon2 = F.mse_loss(x2_recon, x2)
+        loss_recon4 = F.mse_loss(x4_recon, x4)
+        loss_recon5 = F.mse_loss(x5_recon, x5)
 
         loss = loss_cls + loss_recon2 + loss_recon4 + loss_recon5
 

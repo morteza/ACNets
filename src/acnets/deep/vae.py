@@ -35,12 +35,12 @@ class VariationalAutoEncoder(nn.Module):
     def __init__(self, input_size, n_embeddings):
         super().__init__()
         self.n_embeddings = n_embeddings
-        self.encoder = Encoder(input_size, n_embeddings)
-        self.decoder = Decoder(n_embeddings, input_size)
+        self.encode = Encoder(input_size, n_embeddings)
+        self.decode = Decoder(n_embeddings, input_size)
 
     def forward(self, x):
 
-        h = self.encoder(x)
+        h = self.encode(x)
         x_recon = self.decode(h)
 
         return h, x_recon
