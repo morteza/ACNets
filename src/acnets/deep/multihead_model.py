@@ -49,10 +49,10 @@ class MultiHeadModel(pl.LightningModule):
         )
 
         self.cls_head = nn.Sequential(
-            nn.Linear(n_embeddings * 3, n_embeddings),
+            nn.Linear(n_embeddings, n_embeddings // 2),
             nn.ReLU(),
             nn.Dropout(.2),
-            nn.Linear(n_embeddings, 2),
+            nn.Linear(n_embeddings // 2, 2),
             nn.Sigmoid()
         )
 
@@ -73,7 +73,7 @@ class MultiHeadModel(pl.LightningModule):
         h5, x5_recon = self.x5_head(x5)
         x5_recon = x5_recon.view(-1, self.n_networks, self.n_networks)
 
-        h = torch.cat([h2, h4, h5], dim=1)
+        h = torch.stack([h2, h4, h5], dim=0).sum(dim=0)
         y = self.cls_head(h)
 
         return y, x2_recon, x4_recon, x5_recon
@@ -86,13 +86,14 @@ class MultiHeadModel(pl.LightningModule):
         loss_recon4 = F.mse_loss(x4_recon, x4)
         loss_recon5 = F.mse_loss(x5_recon, x5)
 
-        loss = loss_cls + loss_recon2 + loss_recon4 + loss_recon5
+        loss_recon = loss_recon2 + loss_recon4 + loss_recon5
+        loss = loss_cls + loss_recon
 
         accuracy = self.train_accuracy(y_hat, y)
-        self.val_accuracy.reset()
+        self.train_accuracy.reset()
 
         self.log('train/loss_cls', loss_cls)
-        # self.log('train/loss_recon', loss_recon)
+        self.log('train/loss_recon', loss_recon)
         self.log('train/loss', loss)
         self.log('train/accuracy', accuracy)
         return loss
@@ -135,9 +136,9 @@ class MultiHeadModel(pl.LightningModule):
 
         accuracy = 0
         for _ in range(n_repeats):
-            self.val_accuracy.reset()
             y_hat, *_ = self(x1, x2, x3, x4, x5)
             accuracy += self.val_accuracy(y_hat, y)
+            self.val_accuracy.reset()
         accuracy /= n_repeats
 
         return accuracy
