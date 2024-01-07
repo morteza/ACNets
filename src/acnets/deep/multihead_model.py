@@ -25,10 +25,10 @@ class MultiHeadModel(pl.LightningModule):
         # )
 
         # X2 (region-level connectivity)
-        self.x2_head = nn.Sequential(
-            nn.Flatten(start_dim=1),
-            VariationalAutoEncoder(n_regions * n_regions, n_embeddings)
-        )
+        # self.x2_head = nn.Sequential(
+        #     nn.Flatten(start_dim=1),
+        #     VariationalAutoEncoder(n_regions * n_regions, n_embeddings)
+        # )
 
         # X3 (network-level timeseries)
         # self.x3_autoencoder = Seq2SeqAutoEncoder(n_networks, n_embeddings)
@@ -61,8 +61,8 @@ class MultiHeadModel(pl.LightningModule):
         # h1, x1_recon = self.x1_autoencoder(x1)
         # h1 = self.x1_head(h1)
 
-        h2, x2_recon = self.x2_head(x2)
-        x2_recon = x2_recon.view(-1, self.n_regions, self.n_regions)
+        # h2, x2_recon = self.x2_head(x2)
+        # x2_recon = x2_recon.view(-1, self.n_regions, self.n_regions)
 
         # h3, x3_recon = self.x3_autoencoder(x3)
         # h3 = self.x3_head(h3)
@@ -73,20 +73,19 @@ class MultiHeadModel(pl.LightningModule):
         h5, x5_recon = self.x5_head(x5)
         x5_recon = x5_recon.view(-1, self.n_networks, self.n_networks)
 
-        h = torch.stack([h2, h4, h5], dim=0).sum(dim=0)
+        h = torch.stack([h4, h5], dim=0).sum(dim=0)
         y = self.cls_head(h)
 
-        return y, x2_recon, x4_recon, x5_recon
+        return y, x4_recon, x5_recon
 
     def training_step(self, batch, batch_idx):
         x1, x2, x3, x4, x5, y = batch
-        y_hat, x2_recon, x4_recon, x5_recon = self(x1, x2, x3, x4, x5)
+        y_hat, x4_recon, x5_recon = self(x1, x2, x3, x4, x5)
         loss_cls = F.cross_entropy(y_hat, y)
-        loss_recon2 = F.mse_loss(x2_recon, x2)
         loss_recon4 = F.mse_loss(x4_recon, x4)
         loss_recon5 = F.mse_loss(x5_recon, x5)
 
-        loss_recon = loss_recon2 + loss_recon4 + loss_recon5
+        loss_recon = loss_recon4 + loss_recon5
         loss = loss_cls + loss_recon
 
         accuracy = self.train_accuracy(y_hat, y)
@@ -96,6 +95,7 @@ class MultiHeadModel(pl.LightningModule):
         self.log('train/loss_recon', loss_recon)
         self.log('train/loss', loss)
         self.log('train/accuracy', accuracy)
+
         return loss
 
     def enable_dropout(self):
@@ -116,6 +116,8 @@ class MultiHeadModel(pl.LightningModule):
         self.log('val/loss_cls', loss_cls)
         self.log('val/accuracy', accuracy)
         self.log('val/dropout_accuracy', dropout_accuracy)
+
+        return {'val/loss': loss_cls, 'val/accuracy': accuracy}
 
     def test_step(self, batch, batch_idx):
         x1, x2, x3, x4, x5, y = batch

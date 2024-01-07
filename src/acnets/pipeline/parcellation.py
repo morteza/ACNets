@@ -27,10 +27,10 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
   def __init__(self,
                atlas_name='cort-maxprob-thr25-2mm',
-               bids_dir='~/workspace/acnets/data/julia2018',
+               bids_dir='data/julia2018',
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
-               cache_dir='~/workspace/acnets/data/julia2018/derivatives/resting_timeseries/',
+               cache_dir='data/julia2018/derivatives/resting_timeseries/',
                verbose=0) -> None:
 
     self.verbose = verbose
