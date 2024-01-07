@@ -39,11 +39,21 @@ class ACNetsDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # just calling parcellation once, so time-series will be cached
-        Parcellation(atlas_name=self.atlas).fit_transform(X=None)
+        Parcellation(
+            atlas_name=self.atlas,
+            bids_dir='/workspaces/ACNets/data/julia2018',
+            fmriprep_bids_space='MNI152NLin2009cAsym',
+            cache_dir='/workspaces/ACNets/data/julia2018/derivatives/resting_timeseries/'
+        ).fit_transform(X=None)
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
-            x1_time_regions = Parcellation(atlas_name=self.atlas).fit_transform(X=None)
+            x1_time_regions = Parcellation(
+                atlas_name=self.atlas,
+                bids_dir='/workspaces/ACNets/data/julia2018',
+                fmriprep_bids_space='MNI152NLin2009cAsym',
+                cache_dir='/workspaces/ACNets/data/julia2018/derivatives/resting_timeseries/'
+            ).fit_transform(X=None)
             x2_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x1_time_regions)
             x3_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x1_time_regions)
             x4_conn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x3_time_networks)
