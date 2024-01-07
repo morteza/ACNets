@@ -30,14 +30,16 @@ class Parcellation(TransformerMixin, BaseEstimator):
                bids_dir='data/julia2018',
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
-               cache_dir='data/julia2018/derivatives/resting_timeseries/',
+               cache_dir='derivatives/resting_timeseries/',
+               normalize=False,
                verbose=0) -> None:
 
-    self.verbose = verbose
     self.atlas_name = atlas_name
     self.bids_dir = Path(bids_dir).expanduser()
-    self.cache_dir = Path(cache_dir).expanduser()
     self.denoise_strategy = denoise_strategy
+    self.cache_dir = (self.bids_dir / cache_dir).expanduser()
+    self.normalize = normalize
+    self.verbose = verbose
 
     self.fmriprep_dir_ = self.bids_dir / 'derivatives/fmriprep_2020'
     self.fmriprep_bids_space = fmriprep_bids_space
@@ -82,6 +84,12 @@ class Parcellation(TransformerMixin, BaseEstimator):
   def _load_masker(self, atlas_name, mask_file):
     # default implementation when none of the atlases matched in the __init__.
     raise NotImplementedError('Atlas name {} not recognized.'.format(self.atlas_name))
+
+  def _normalize_func(self, x: xr.DataArray):
+    """Normalize the subject data to [-1, 1] range."""
+    x_std = (x - x.min(['subject'])) / (x.max(['subject']) - x.min(['subject']))
+    x_std = x_std * 2 - 1
+    return x_std
 
   def extract_timeseries(self, img_files, mask_files, atlas_name):
 
@@ -131,6 +139,9 @@ class Parcellation(TransformerMixin, BaseEstimator):
         'region': self.labels_.index,
         'subject': preprocessed_subjects,
     })
+
+    if self.normalize:
+      timeseries_ds['timeseries'] = self._normalize_func(timeseries_ds['timeseries'])
 
     # participants
     participants = pd.read_csv(Path(self.bids_dir).expanduser() / 'participants.tsv',
@@ -206,6 +217,9 @@ class Parcellation(TransformerMixin, BaseEstimator):
     if X is not None:
       selected_subjects = X.reshape(-1).tolist()
       dataset = dataset.sel(subject=selected_subjects)
+
+    if self.normalize:
+      dataset['timeseries'] = self._normalize_func(dataset['timeseries'])
 
     return dataset
 

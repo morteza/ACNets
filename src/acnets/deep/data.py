@@ -43,7 +43,7 @@ class ACNetsDataModule(pl.LightningDataModule):
             atlas_name=self.atlas,
             bids_dir='~/workspace/acnets/data/julia2018',
             fmriprep_bids_space='MNI152NLin2009cAsym',
-            cache_dir='~/workspace/acnets/data/julia2018/derivatives/resting_timeseries/'
+            normalize=True
         ).fit_transform(X=None)
 
     def setup(self, stage=None):
@@ -52,7 +52,7 @@ class ACNetsDataModule(pl.LightningDataModule):
                 atlas_name=self.atlas,
                 bids_dir='~/workspace/acnets/data/julia2018',
                 fmriprep_bids_space='MNI152NLin2009cAsym',
-                cache_dir='~/workspace/acnets/data/julia2018/derivatives/resting_timeseries/'
+                normalize=True
             ).fit_transform(X=None)
             x2_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x1_time_regions)
             x3_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x1_time_regions)
