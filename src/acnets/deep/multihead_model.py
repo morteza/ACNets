@@ -38,14 +38,14 @@ class MultiHeadModel(pl.LightningModule):
 
         # X4 (network-level connectivity)
         self.x4_head = nn.Sequential(
-            nn.Flatten(start_dim=1),
-            VariationalAutoEncoder(n_networks * n_networks, n_embeddings)
+            # nn.Flatten(start_dim=1),
+            VariationalAutoEncoder(n_networks * (n_networks - 1) // 2, n_embeddings)
         )
 
         # X5 (averaged network-level connectivity)
         self.x5_head = nn.Sequential(
-            nn.Flatten(start_dim=1),
-            VariationalAutoEncoder(n_networks * n_networks, n_embeddings)
+            # nn.Flatten(start_dim=1),
+            VariationalAutoEncoder(n_networks * (n_networks + 1) // 2, n_embeddings)
         )
 
         self.cls_head = nn.Sequential(
@@ -68,10 +68,7 @@ class MultiHeadModel(pl.LightningModule):
         # h3 = self.x3_head(h3)
 
         h4, x4_recon = self.x4_head(x4)
-        x4_recon = x4_recon.view(-1, self.n_networks, self.n_networks)
-
         h5, x5_recon = self.x5_head(x5)
-        x5_recon = x5_recon.view(-1, self.n_networks, self.n_networks)
 
         h = torch.stack([h4, h5], dim=0).sum(dim=0)
         y = self.cls_head(h)
@@ -80,12 +77,19 @@ class MultiHeadModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x1, x2, x3, x4, x5, y = batch
+
+        # keep only the triu of the x4 and flatten non-zero elements
+        x4 = x4[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=1) == 1]
+        x5 = x5[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=0) == 1]
+
         y_hat, x4_recon, x5_recon = self(x1, x2, x3, x4, x5)
+
         loss_cls = F.cross_entropy(y_hat, y)
         loss_recon4 = F.mse_loss(x4_recon, x4)
         loss_recon5 = F.mse_loss(x5_recon, x5)
 
-        loss_recon = loss_recon4 + loss_recon5
+        beta = 10.
+        loss_recon = (loss_recon4 + loss_recon5) * beta
         loss = loss_cls + loss_recon
 
         accuracy = self.train_accuracy(y_hat, y)
@@ -106,7 +110,13 @@ class MultiHeadModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x1, x2, x3, x4, x5, y = batch
-        y_hat, *ـ = self(x1, x2, x3, x4, x5)
+
+        # keep only the triu of the x4 and flatten non-zero elements
+        x4 = x4[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=1) == 1]
+        x5 = x5[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=0) == 1]
+
+        y_hat, *_ = self(x1, x2, x3, x4, x5)
+
         loss_cls = F.cross_entropy(y_hat, y)
 
         accuracy = self.val_accuracy(y_hat, y.float())
@@ -121,7 +131,15 @@ class MultiHeadModel(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         x1, x2, x3, x4, x5, y = batch
-        y_hat, *ـ = self(x1, x2, x3, x4, x5)
+
+        # keep only the triu of the x4 and flatten non-zero elements
+        x4 = x4[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=1) == 1]
+        x5 = x5[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=0) == 1]
+
+        print('test', x4.shape, x5.shape)
+
+        y_hat, *_ = self(x1, x2, x3, x4, x5)
+
         loss_cls = F.cross_entropy(y_hat, y)
 
         accuracy = self.val_accuracy(y_hat, y)
@@ -134,6 +152,10 @@ class MultiHeadModel(pl.LightningModule):
 
     def calculate_dropout_accuracy(self, batch, n_repeats=10):
         x1, x2, x3, x4, x5, y = batch
+
+        x4 = x4[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=1) == 1]
+        x5 = x5[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=0) == 1]
+
         self.enable_dropout()
 
         accuracy = 0
