@@ -6,33 +6,50 @@ from torch.utils.data import random_split, DataLoader, TensorDataset, ConcatData
 from sklearn.preprocessing import LabelEncoder
 from ..pipeline import Parcellation, ConnectivityExtractor, TimeseriesAggregator, ConnectivityAggregator
 from sklearn.model_selection import train_test_split
+from pathlib import Path
 
 
-class ACNetsDataModule(pl.LightningDataModule):
-    """Julia2018 dataset.
+class Julia2018DataModule(pl.LightningDataModule):
+    """Julia2018 preprocessed resting-state dataset.
 
-    Data
-    ----
-    - x1: time-series (regions x timepoints)
-    - x2: connectivity (regions x regions)
-    - x3: time-series (networks x timepoints)
-    - x4: connectivity (networks x networks)
-    - x5: connectivity (networks x networks)
-    - y: subject labels (AVGP or NVGP)
+    Args:
+        atlas (str): default='dosenbach2010'
+            The name of the atlas to use for parcellation.
+        kind (str) default='partial correlation'
+            The kind of connectivity to extract.
+        test_ratio float): default=.25
+            The ratio of the dataset to include in the test split.
+
+    Attributes:
+        All the train, val, test and full_data attributes are torch.utils.data.Dataset objects
+        and contain the following attributes:
+            x1: time-series (regions x timepoints)
+            x2: connectivity (regions x regions)
+            x3: time-series (networks x timepoints)
+            x4: connectivity (networks x networks)
+            x5: connectivity (networks x networks)
+            y: subject labels (AVGP or NVGP)
 
     """
+
     def __init__(self,
                  atlas='dosenbach2010',
                  kind='partial correlation',
-                 test_ratio=.25, val_ratio=.125,
-                 suffle=True, batch_size=8, num_workers=os.cpu_count() - 1):
+                 dataset_path=Path('data/julia2018/'),
+                 test_ratio=.25,
+                 val_ratio=.125,
+                 shuffle=True,
+                 batch_size=8,
+                 num_workers=os.cpu_count() - 1):
+
         super().__init__()
         self.atlas = atlas
         self.kind = kind
+        self.dataset_path = dataset_path
         self.test_ratio = test_ratio
         self.val_ratio = val_ratio
         self.train_ratio = 1 - test_ratio - val_ratio
-        self.shuffle = suffle
+        self.shuffle = shuffle
         self.batch_size = batch_size
         self.y_encoder = LabelEncoder()
         self.num_workers = num_workers
@@ -41,7 +58,7 @@ class ACNetsDataModule(pl.LightningDataModule):
         # just calling parcellation once, so time-series will be cached
         Parcellation(
             atlas_name=self.atlas,
-            bids_dir='~/workspace/acnets/data/julia2018',
+            bids_dir=self.dataset_path,
             fmriprep_bids_space='MNI152NLin2009cAsym',
             normalize=True
         ).fit_transform(X=None)
@@ -50,7 +67,7 @@ class ACNetsDataModule(pl.LightningDataModule):
         if stage == 'fit' or stage is None:
             x1_time_regions = Parcellation(
                 atlas_name=self.atlas,
-                bids_dir='~/workspace/acnets/data/julia2018',
+                bids_dir=self.dataset_path,
                 fmriprep_bids_space='MNI152NLin2009cAsym',
                 normalize=True
             ).fit_transform(X=None)

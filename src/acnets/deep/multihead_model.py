@@ -16,7 +16,7 @@ class MultiHeadModel(pl.LightningModule):
         self.n_embeddings = n_embeddings
 
         self.accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
-        
+
         # X1 (region-level timeseries)
         # self.x1_autoencoder = Seq2SeqAutoEncoder(n_regions, n_embeddings)
         # self.x1_head = nn.Sequential(
@@ -75,6 +75,9 @@ class MultiHeadModel(pl.LightningModule):
         y = self.cls_head(h)
 
         return y, loss_recon
+
+    def fine_tune(self, x1, x2, x3, x4, x5, y):
+        raise NotImplementedError('Fine-tuning is not implemented yet.')
 
     def training_step(self, batch, batch_idx):
         x1, x2, x3, x4, x5, y = batch
