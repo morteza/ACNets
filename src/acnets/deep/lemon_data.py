@@ -1,10 +1,10 @@
 import os
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import random_split, DataLoader, TensorDataset, ConcatDataset
+from torch.utils.data import DataLoader, TensorDataset, ConcatDataset
 
 from sklearn.preprocessing import LabelEncoder
-from ..pipeline import Parcellation, ConnectivityExtractor, TimeseriesAggregator, ConnectivityAggregator
+from ..pipeline import ConnectivityExtractor, TimeseriesAggregator, ConnectivityAggregator
 from sklearn.model_selection import train_test_split
 from src.acnets.parcellations.dosenbach import load_dosenbach2010_masker
 from pathlib import Path
@@ -63,7 +63,7 @@ class LEMONDataModule(pl.LightningDataModule):
         self.y_encoder = LabelEncoder()
         self.num_workers = num_workers
 
-        self.timeseries_dataset_path = Path(f'data/mpi-lemon/{self.n_subjects}subjects_{self.atlas}_timeseries.nc')
+        self.timeseries_dataset_path = Path(f'data/mpi-lemon/{self.atlas}_timeseries.nc')
 
     def extract_timeseries(self, t2_mni_file):
         subject = t2_mni_file.parents[1].stem
@@ -79,32 +79,41 @@ class LEMONDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
 
+        # if there is a dataset file, check if the number of subjects is enough
         if self.timeseries_dataset_path.exists():
-            # skip preprocessing if the dataset file already exists
-            print('skip preprocessing')
-            return
+            with xr.open_dataset(self.timeseries_dataset_path) as dataset:
+                dataset.load()
+            n_available_subjects = dataset.sizes['subject']
+            if n_available_subjects >= self.n_subjects:
+                return
+        else:
+            n_available_subjects = 0
+            dataset = xr.Dataset()
+            dataset.attrs['space'] = 'MNI2mm'
 
         t2_mni2mm_files = sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz'))
+        t2_mni2mm_files = t2_mni2mm_files[n_available_subjects:self.n_subjects]
 
         timeseries = Parallel(n_jobs=self.num_workers)(
             delayed(self.extract_timeseries)(t2_mni_file)
-            for t2_mni_file in t2_mni2mm_files[:self.n_subjects])
-        timeseries = dict(timeseries)
+            for t2_mni_file in t2_mni2mm_files)
+        timeseries = dict(timeseries)  # e.g., {sub1: ts1, sub2: ts2, ...}
 
-        _, regions = load_dosenbach2010_masker()
-        regions = regions.to_xarray().drop_vars('index')
-
-        dataset = xr.Dataset()
-        dataset.attrs['space'] = 'MNI2mm'
-        dataset['timeseries'] = xr.DataArray(
+        new_dataset = xr.Dataset()
+        new_dataset.attrs['space'] = 'MNI2mm'
+        new_dataset['timeseries'] = xr.DataArray(
             np.stack(list(timeseries.values())),
             dims=('subject', 'timepoint', 'region'),
             coords={'subject': list(timeseries.keys())}
         )
 
-        dataset = xr.merge([dataset, regions])
+        timeseries = self.normalize_timeseries(new_dataset['timeseries'])
 
-        dataset['timeseries'] = self.normalize_timeseries(dataset['timeseries'])
+        _, regions = load_dosenbach2010_masker()
+        regions = regions.to_xarray().drop_vars('index')
+
+        new_dataset = xr.merge([new_dataset, regions])
+        dataset = xr.merge([dataset, new_dataset])
 
         dataset.to_netcdf(self.timeseries_dataset_path, engine='h5netcdf')
 
@@ -114,11 +123,23 @@ class LEMONDataModule(pl.LightningDataModule):
             # skip setup if reloading is not required
             return
 
-        if not self.timeseries_dataset_path.exists():
+        if self.timeseries_dataset_path.exists():
+            with xr.open_dataset(self.timeseries_dataset_path) as dataset:
+                dataset.load()
+            n_available_subjects = dataset.sizes['subject']
+            if n_available_subjects < self.n_subjects:
+                # run preprocessing if the dataset file does not have enough subjects
+                print(f'only {n_available_subjects} timeseries available,'
+                      f' preparing {self.n_subjects - n_available_subjects} more timeseries')
+                self.prepare_data()
+        else:
             # run preprocessing if the dataset file does not exist
+            print(f'no dataset file found, preparing {self.n_subjects} timeseries')
             self.prepare_data()
 
-        x1_time_regions = xr.open_dataset(self.timeseries_dataset_path, engine='h5netcdf')
+        with xr.open_dataset(self.timeseries_dataset_path, engine='h5netcdf') as dataset:
+            dataset.load()
+            x1_time_regions = dataset.isel(subject=slice(self.n_subjects))
 
         x2_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x1_time_regions)
         x3_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x1_time_regions)
