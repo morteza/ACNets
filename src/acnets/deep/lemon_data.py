@@ -42,6 +42,7 @@ class LEMONDataModule(pl.LightningDataModule):
                  n_subjects=5,
                  test_ratio=.25,
                  val_ratio=.125,
+                 normalize=True,
                  shuffle=True,
                  batch_size=8,
                  num_workers=os.cpu_count() - 1):
@@ -58,6 +59,7 @@ class LEMONDataModule(pl.LightningDataModule):
         self.test_ratio = test_ratio
         self.val_ratio = val_ratio
         self.train_ratio = 1 - test_ratio - val_ratio
+        self.normalize = normalize
         self.shuffle = shuffle
         self.batch_size = batch_size
         self.y_encoder = LabelEncoder()
@@ -73,7 +75,8 @@ class LEMONDataModule(pl.LightningDataModule):
 
     def normalize_timeseries(self, x: xr.DataArray):
         """Normalize the subject data to [-1, 1] range."""
-        x_norm = (x - x.min(['subject'])) / (x.max(['subject']) - x.min(['subject']))
+        x_min, x_max = x.min(['region', 'timepoint']), x.max(['region', 'timepoint'])
+        x_norm = (x - x_min) / (x_max - x_min)
         x_norm = x_norm * 2 - 1  # map 0 to -1, and 1 to 1
         return x_norm
 
@@ -92,6 +95,7 @@ class LEMONDataModule(pl.LightningDataModule):
             dataset.attrs['space'] = 'MNI2mm'
 
         t2_mni2mm_files = sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz'))
+        self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
         t2_mni2mm_files = t2_mni2mm_files[n_available_subjects:self.n_subjects]
 
         timeseries = Parallel(n_jobs=self.num_workers)(
@@ -107,7 +111,8 @@ class LEMONDataModule(pl.LightningDataModule):
             coords={'subject': list(timeseries.keys())}
         )
 
-        timeseries = self.normalize_timeseries(new_dataset['timeseries'])
+        if self.normalize:
+            new_dataset['timeseries'] = self.normalize_timeseries(new_dataset['timeseries'])
 
         _, regions = load_dosenbach2010_masker()
         regions = regions.to_xarray().drop_vars('index')
