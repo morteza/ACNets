@@ -53,7 +53,7 @@ dependencies:
   
   # deep learning
   - pytorch
-  - pytorch-cuda=12.1  # optional
+  # - pytorch-cuda=12.1  # optional on GPU systems
   - pytorch-lightning
   - tensorboard
   - rich
