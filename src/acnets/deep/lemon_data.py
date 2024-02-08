@@ -70,8 +70,12 @@ class LEMONDataModule(pl.LightningDataModule):
     def extract_timeseries(self, t2_mni_file):
         subject = t2_mni_file.parents[1].stem
         atlas_masker, _ = load_dosenbach2010_masker()
-        ts = atlas_masker.fit_transform(t2_mni_file)  # (m_timepoints, n_regions)
-        return subject, ts
+        try:
+            ts = atlas_masker.fit_transform(t2_mni_file)  # (m_timepoints, n_regions)
+            return subject, ts
+        except Exception as e:
+            print('Error while extracting timeseries for', subject, e)
+            return subject, None
 
     def normalize_timeseries(self, x: xr.DataArray):
         """Normalize the subject data to [-1, 1] range."""
@@ -81,6 +85,9 @@ class LEMONDataModule(pl.LightningDataModule):
         return x_norm
 
     def prepare_data(self):
+
+        t2_mni2mm_files = sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz'))
+        self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
 
         # if there is a dataset file, check if the number of subjects is enough
         if self.timeseries_dataset_path.exists():
@@ -94,8 +101,6 @@ class LEMONDataModule(pl.LightningDataModule):
             dataset = xr.Dataset()
             dataset.attrs['space'] = 'MNI2mm'
 
-        t2_mni2mm_files = sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz'))
-        self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
         t2_mni2mm_files = t2_mni2mm_files[n_available_subjects:self.n_subjects]
 
         timeseries = Parallel(n_jobs=self.num_workers)(
@@ -127,6 +132,9 @@ class LEMONDataModule(pl.LightningDataModule):
         if stage != 'fit' and stage is not None:
             # skip setup if reloading is not required
             return
+
+        t2_mni2mm_files = sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz'))
+        self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
 
         if self.timeseries_dataset_path.exists():
             with xr.open_dataset(self.timeseries_dataset_path) as dataset:
