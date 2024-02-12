@@ -16,8 +16,7 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
 
     if strategy == 'wavelet':
       self._wavelet_name = kwargs.get('wavelet_name', 'db4')
-      self._wavelet_coefs_dim = kwargs.get('wavelet_coefs_dim', 100)
-      # TODO self._wavelet_level = kwargs.get('wavelet_level', 5)
+      self._wavelet_coef_dim = kwargs.get('wavelet_coef_dim', -1)
 
     # the rest of init from scikit-learn
     super().__init__()
@@ -37,9 +36,9 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
     if self.strategy == 'wavelet':
       import pywt
       ts = dataset['timeseries'].transpose('subject', 'region', 'timepoint')
-      coefs = pywt.wavedec(ts, wavelet=self.wavelet_name)
+      coefs = pywt.wavedec(ts, wavelet=self._wavelet_name)
       coefs_image = np.concatenate(coefs, axis=2)
-      coefs_image = coefs_image[..., :self.wavelet_coefs_dim]
+      coefs_image = coefs_image[..., :self._wavelet_coef_dim]
       new_dataset['wavelets'] = (['subject', 'wavelet_dim', 'region'],
                                  coefs_image.transpose(0, 2, 1))  # subject, wavelet_dim, region
       return new_dataset

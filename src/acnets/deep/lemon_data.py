@@ -163,7 +163,7 @@ class LEMONDataModule(pl.LightningDataModule):
         x5_conn_networks = ConnectivityAggregator(strategy='network').fit_transform(x2_conn_regions)
         x6_time_wavelets = TimeseriesAggregator(strategy='wavelet',
                                                 wavelet_name='db1',
-                                                wavelet_coefs_dim=100
+                                                # wavelet_coef_dim=100
                                                 ).fit_transform(x1_time_regions)
 
         x1 = torch.Tensor(x1_time_regions['timeseries'].values)
