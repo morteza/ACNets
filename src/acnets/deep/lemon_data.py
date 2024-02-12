@@ -134,7 +134,9 @@ class LEMONDataModule(pl.LightningDataModule):
             return
 
         t2_mni2mm_files = sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz'))
-        self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
+
+        if len(t2_mni2mm_files) > 0:
+            self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
 
         if self.timeseries_dataset_path.exists():
             with xr.open_dataset(self.timeseries_dataset_path) as dataset:
