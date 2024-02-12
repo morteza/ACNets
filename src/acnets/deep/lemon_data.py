@@ -32,6 +32,7 @@ class LEMONDataModule(pl.LightningDataModule):
             x3: time-series (networks x timepoints)
             x4: connectivity (networks x networks)
             x5: connectivity (networks x networks)
+            x6: wavelets (regions x wavelets)
 
     """
 
@@ -160,29 +161,35 @@ class LEMONDataModule(pl.LightningDataModule):
         x3_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x1_time_regions)
         x4_conn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x3_time_networks)
         x5_conn_networks = ConnectivityAggregator(strategy='network').fit_transform(x2_conn_regions)
+        x6_time_wavelets = TimeseriesAggregator(strategy='wavelet',
+                                                wavelet_name='db1',
+                                                wavelet_coefs_dim=100
+                                                ).fit_transform(x1_time_regions)
 
         x1 = torch.Tensor(x1_time_regions['timeseries'].values)
         x2 = torch.Tensor(x2_conn_regions['connectivity'].values)
         x3 = torch.Tensor(x3_time_networks['timeseries'].values)
         x4 = torch.Tensor(x4_conn_networks['connectivity'].values)
         x5 = torch.Tensor(x5_conn_networks['connectivity'].values)
+        x6 = torch.Tensor(x6_time_wavelets['wavelets'].values)
 
-        self.full_data = TensorDataset(x1, x2, x3, x4, x5)
+        self.full_data = TensorDataset(x1, x2, x3, x4, x5, x6)
 
         # split into train, val and test
         n_subjects = x1.shape[0]
         train_idx, test_idx = train_test_split(
             torch.arange(n_subjects), test_size=self.test_ratio, shuffle=self.shuffle)
-        train_idx, val_idx = train_test_split(
-            train_idx, test_size=self.val_ratio / (1 - self.test_ratio),
-            shuffle=self.shuffle)
 
         self.train = torch.utils.data.Subset(self.full_data, train_idx)
-        self.val = torch.utils.data.Subset(self.full_data, val_idx)
         self.test = torch.utils.data.Subset(self.full_data, test_idx)
 
+        # TODO separate val dataset
         # concat val and train for final training (we only use train and test for now)
-        self.train = ConcatDataset([self.train, self.val])
+        # train_idx, val_idx = train_test_split(
+        #        train_idx, test_size=self.val_ratio / (1 - self.test_ratio),
+        #        shuffle=self.shuffle)
+        # self.val = torch.utils.data.Subset(self.full_data, val_idx)
+        # self.train = ConcatDataset([self.train, self.val])
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size,
