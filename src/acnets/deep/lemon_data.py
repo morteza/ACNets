@@ -59,7 +59,7 @@ class LEMONDataModule(pl.LightningDataModule):
         self.n_subjects = n_subjects
         self.test_ratio = test_ratio
         self.val_ratio = val_ratio
-        self.train_ratio = 1 - test_ratio - val_ratio
+        self.train_ratio = 1 - test_ratio - val_ratio if test_ratio is not None else 1
         self.normalize = normalize
         self.shuffle = shuffle
         self.batch_size = batch_size
@@ -177,19 +177,24 @@ class LEMONDataModule(pl.LightningDataModule):
 
         # split into train, val and test
         n_subjects = x1.shape[0]
-        train_idx, test_idx = train_test_split(
-            torch.arange(n_subjects), test_size=self.test_ratio, shuffle=self.shuffle)
 
-        self.train = torch.utils.data.Subset(self.full_data, train_idx)
-        self.test = torch.utils.data.Subset(self.full_data, test_idx)
+        if self.test_ratio is not None:
+            train_idx, test_idx = train_test_split(
+                torch.arange(n_subjects), test_size=self.test_ratio, shuffle=self.shuffle)
 
-        # TODO separate val dataset
-        # concat val and train for final training (we only use train and test for now)
-        # train_idx, val_idx = train_test_split(
-        #        train_idx, test_size=self.val_ratio / (1 - self.test_ratio),
-        #        shuffle=self.shuffle)
-        # self.val = torch.utils.data.Subset(self.full_data, val_idx)
-        # self.train = ConcatDataset([self.train, self.val])
+            self.train = torch.utils.data.Subset(self.full_data, train_idx)
+            self.test = torch.utils.data.Subset(self.full_data, test_idx)
+            # TODO separate val dataset
+            # concat val and train for final training (we only use train and test for now)
+            # train_idx, val_idx = train_test_split(
+            #        train_idx, test_size=self.val_ratio / (1 - self.test_ratio),
+            #        shuffle=self.shuffle)
+            # self.val = torch.utils.data.Subset(self.full_data, val_idx)
+            # self.train = ConcatDataset([self.train, self.val])
+
+        else:
+            self.train = self.full_data
+            self.test = self.full_data
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size,
