@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import pytorch_lightning as pl
 
 
-class Encoder(nn.Module):
+class Encoder(pl.LightningModule):
     def __init__(self, n_channels, n_embeddings):
         super().__init__()
 
@@ -23,7 +24,7 @@ class Encoder(nn.Module):
         return out
 
 
-class Decoder(nn.Module):
+class Decoder(pl.LightningModule):
     def __init__(self, n_channels, n_embeddings):
         super().__init__()
         self.decode = nn.Sequential(
@@ -42,12 +43,12 @@ class Decoder(nn.Module):
         return out
 
 
-class CVAE(nn.Module):
+class CVAE(pl.LightningModule):
     def __init__(self, n_channels, n_embeddings, kernel_size=5, stride=2):
         super().__init__()
         self.n_embeddings = n_embeddings
-        self.encode = Encoder(n_channels, n_embeddings)
-        self.decode = Decoder(n_channels, n_embeddings)
+        self.encoder = Encoder(n_channels, n_embeddings)
+        self.decoder = Decoder(n_channels, n_embeddings)
 
         self.mean_fc = nn.Linear(n_embeddings, n_embeddings)
         self.logvar_fc = nn.Linear(n_embeddings, n_embeddings)
@@ -61,7 +62,7 @@ class CVAE(nn.Module):
 
     def forward(self, x):
 
-        h = self.encode(x)
+        h = self.encoder(x)
 
         mean = self.mean_fc(h)
         logvar = self.logvar_fc(h)
@@ -69,7 +70,7 @@ class CVAE(nn.Module):
         # re-parameterization trick
         z = self.reparameterize(mean, logvar)
 
-        x_recon = self.decode(z)
+        x_recon = self.decoder(z)
 
         loss = self.loss(x, x_recon, mean, logvar)
 
