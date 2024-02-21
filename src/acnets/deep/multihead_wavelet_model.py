@@ -30,12 +30,13 @@ class Classifier(pl.LightningModule):
 
 
 class MultiHeadWaveletModel(pl.LightningModule):
-    def __init__(self, n_regions, n_wavelets=32, n_embeddings=2):
+    def __init__(self, n_regions, n_wavelets=124, n_embeddings=2, segment_length=32):
         super().__init__()
 
         self.n_regions = n_regions
         self.n_embeddings = n_embeddings
         self.n_wavelets = n_wavelets
+        self.segment_length = segment_length
 
         self.accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
 
@@ -43,25 +44,43 @@ class MultiHeadWaveletModel(pl.LightningModule):
         self.cls_head = Classifier(n_embeddings)
 
     def forward(self, x_wvt):
+        """_summary_
 
-        x = x_wvt[:, :self.n_wavelets, :].transpose(1, 2)  # -> shape: (subjects, regions, wavelets)
-        h, x_recon, loss_recon = self.feature_extractor(x)
+        Args:
+            x_wvt (torch.Tensor): shape: (subjects, wavelets, regions)
 
-        y = self.cls_head(h) if self._is_finetune_enabled else None
+        Returns:
+            y, h, loss_recon
+        """
 
-        return h, loss_recon, y
+        x = x_wvt[:, :self.n_wavelets, :]  # -> shape: (subjects, wavelets, regions)
 
-    def step(self, batch, batch_idx, phase: Literal['train', 'test', 'val'] = 'train'):
+        x_segments = x.unfold(1, self.segment_length, self.segment_length)
+        x_segments = x_segments.reshape(-1, self.segment_length, self.n_regions)
+        x_segments = x_segments.permute(0, 2, 1)  # -> shape: (subjects * segments, regions, segment_length)
+
+        h, x_segments_recon, loss_recon = self.feature_extractor(x_segments)
+
+        if self._is_finetune_enabled:
+            y = self.cls_head(h)
+            y = y.reshape(x.size(0), -1, 2)
+            y = y.mean(dim=1)
+        else:
+            y = None
+
+        return y, h, loss_recon
+
+    def step(self, batch, batch_idx, phase: Literal['train', 'test', 'val', 'finetune'] = 'train'):
         x_wvt = batch[5]
 
-        h, loss_recon, y_hat = self(x_wvt)
+        y_hat, h, loss_recon = self(x_wvt)
         loss = loss_recon
         self.log(f'loss_recon/{phase}', loss_recon)
 
         if y_hat is not None:
             y = batch[6]
             loss_cls = F.cross_entropy(y_hat, y)
-            loss = loss_cls
+            loss += loss_cls
             self.log(f'loss_cls/{phase}', loss_cls)
 
             accuracy = self.accuracy(y_hat, y)
@@ -72,7 +91,8 @@ class MultiHeadWaveletModel(pl.LightningModule):
 
     def enable_finetune(self):
         self.unfreeze()
-        self.feature_extractor.decoder.freeze()
+        # self.feature_extractor.decoder.freeze()
+        # self.feature_extractor.freeze()
         self._is_finetune_enabled = True
 
     def disable_finetune(self):

@@ -22,5 +22,6 @@
   "Vectorizer",
   "xarray",
   "timeseries"
-]
+],
+"python.analysis.typeCheckingMode": "basic"
 }

@@ -16,6 +16,10 @@ dependencies:
   - ipywidgets
   - flake8
   - watermark
+  
+  # DOC
+  - quarto
+  - quartodoc
 
   # TEST
   - pytest
