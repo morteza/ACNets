@@ -96,7 +96,7 @@ class MultiHeadWaveletModel(pl.LightningModule):
     def enable_finetune(self):
         self.unfreeze()
         # self.feature_extractor.decoder.freeze()
-        # self.feature_extractor.freeze()
+        self.feature_extractor.freeze()
         self._is_finetune_enabled = True
 
     def disable_finetune(self):
