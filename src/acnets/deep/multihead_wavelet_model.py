@@ -3,6 +3,8 @@ import torch
 from torch.nn import functional as F
 from torch import nn
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import RichProgressBar, ModelCheckpoint
 import torchmetrics as metrics
 from .seq2seq import Seq2SeqAutoEncoder
 from .vae import VariationalAutoEncoder
@@ -70,7 +72,7 @@ class MultiHeadWaveletModel(pl.LightningModule):
 
         return y, h, loss_recon
 
-    def step(self, batch, batch_idx, phase: Literal['train', 'test', 'val', 'finetune'] = 'train'):
+    def step(self, batch, batch_idx, phase: Literal['train', 'test', 'val'] = 'train'):
         x_wvt = batch[5]
 
         y_hat, h, loss_recon = self(x_wvt)
@@ -103,7 +105,7 @@ class MultiHeadWaveletModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         if self._is_finetune_enabled:
             self.enable_finetune()
-            return self.step(batch, batch_idx, phase='finetune')
+            return self.step(batch, batch_idx, phase='train')
         else:
             self.disable_finetune()
             return self.step(batch, batch_idx, phase='train')
@@ -118,3 +120,31 @@ class MultiHeadWaveletModel(pl.LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
+
+    def fit(self, datamodule, max_epochs=100, with_classifier=False, **kwargs):
+        # pre-train
+        if with_classifier:
+            run_name = 'wvt_ft'
+            ckpt_path = None
+            callbacks = [RichProgressBar()]
+            self.enable_finetune()
+        else:
+            run_name = 'wvt'
+            ckpt_path = 'last'
+            callbacks = [RichProgressBar(), ModelCheckpoint(save_last=True)]
+            self.disable_finetune()
+
+        trainer = pl.Trainer(
+            accelerator='auto',
+            max_epochs=max_epochs,
+            # accumulate_grad_batches=5,
+            #  gradient_clip_val=.5,
+            logger=TensorBoardLogger('lightning_logs', name=run_name, version=1),
+            log_every_n_steps=1,
+            callbacks=callbacks,
+            enable_checkpointing=True,
+            **kwargs)
+
+        trainer.fit(self, datamodule=datamodule, ckpt_path=ckpt_path)
+
+        return trainer

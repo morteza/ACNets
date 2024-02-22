@@ -87,9 +87,6 @@ class LEMONDataModule(pl.LightningDataModule):
 
     def prepare_data(self):
 
-        t2_mni2mm_files = sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz'))
-        self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
-
         # if there is a dataset file, check if the number of subjects is enough
         if self.timeseries_dataset_path.exists():
             with xr.open_dataset(self.timeseries_dataset_path) as dataset:
@@ -102,6 +99,8 @@ class LEMONDataModule(pl.LightningDataModule):
             dataset = xr.Dataset()
             dataset.attrs['space'] = 'MNI2mm'
 
+        t2_mni2mm_files = list(sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz')))
+        self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
         t2_mni2mm_files = t2_mni2mm_files[n_available_subjects:self.n_subjects]
 
         timeseries = Parallel(n_jobs=self.num_workers)(
