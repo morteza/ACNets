@@ -52,6 +52,27 @@ class Julia2018DataModule(pl.LightningDataModule):
         self.y_encoder = LabelEncoder()
         self.num_workers = num_workers
 
+        match self.atlas:
+            case 'dosenbach2010':
+                self._atlas_masker, self._parcels = dosenbach.load_dosenbach2010_masker()
+            case 'aal':
+                from nilearn import maskers
+                import pandas as pd
+
+                self._parcels = pd.read_csv('data/atlases/AAL3v1.csv')
+                self._parcels.dropna(subset=['index'], inplace=True)
+                self._parcels.set_index('region', inplace=True)
+
+                self._atlas_masker = maskers.NiftiLabelsMasker(
+                    'data/atlases/AAL3v1.nii.gz',
+                    standardize='zscore_sample',
+                    standardize_confounds='zscore_sample',
+                    # detrend=True,
+                    verbose=0)
+
+            case _:
+                raise ValueError(f'Atlas {self.atlas} is not supported.')
+
     def prepare_data(self):
         # just calling parcellation once, so time-series will be cached
         Parcellation(
@@ -63,31 +84,43 @@ class Julia2018DataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
-            x1_time_regions = Parcellation(
+
+            xs = []  # list to store the different data
+
+            x_time_regions = Parcellation(
                 atlas_name=self.atlas,
                 bids_dir=self.dataset_path,
                 fmriprep_bids_space='MNI152NLin2009cAsym',
                 normalize=True
             ).fit_transform(X=None)
-            x2_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x1_time_regions)
-            x3_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x1_time_regions)
-            x4_conn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x3_time_networks)
-            x5_conn_networks = ConnectivityAggregator(strategy='network').fit_transform(x2_conn_regions)
-            x6_time_wavelets = TimeseriesAggregator(strategy='wavelet',
-                                                    wavelet_name='db1').fit_transform(x1_time_regions)
 
-            x1 = torch.Tensor(x1_time_regions['timeseries'].values)
-            x2 = torch.Tensor(x2_conn_regions['connectivity'].values)
-            x3 = torch.Tensor(x3_time_networks['timeseries'].values)
-            x4 = torch.Tensor(x4_conn_networks['connectivity'].values)
-            x5 = torch.Tensor(x5_conn_networks['connectivity'].values)
-            x6 = torch.Tensor(x6_time_wavelets['wavelets'].values)
+            xs.append(torch.Tensor(x_time_regions['timeseries'].values))
+
+            # connectivity
+            x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+            xs.append(torch.Tensor(x_conn_regions['connectivity'].values))
+
+            # wavelets
+            x_time_wavelets = TimeseriesAggregator(strategy='wavelet',
+                                                wavelet_name='db1',
+                                                # wavelet_coef_dim=100
+                                                ).fit_transform(x_time_regions)
+            xs.append(torch.Tensor(x_time_wavelets['wavelets'].values))
+
+            # network-level time-series, ts-based connectivity, and conn-based connectivity
+            if 'network' in x_time_regions.dims:
+                x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
+                xs.append(torch.Tensor(x_time_networks['timeseries'].values))
+                x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
+                xs.append(torch.Tensor(x_tconn_networks['connectivity'].values))
+                x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
+                xs.append(torch.Tensor(x_cconn_networks['connectivity'].values))
 
             # extract subject labels (AVGP or NVGP)
-            y = self.y_encoder.fit_transform([s[:4] for s in x1_time_regions['subject'].values])
+            y = self.y_encoder.fit_transform([s[:4] for s in x_time_regions['subject'].values])
             y = torch.tensor(y)
 
-            self.full_data = TensorDataset(x1, x2, x3, x4, x5, x6, y)
+            self.full_data = TensorDataset(*xs, y)
 
             # stratified split into train, val and test
             n_subjects = len(y)

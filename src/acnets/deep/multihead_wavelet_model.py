@@ -75,14 +75,14 @@ class MultiHeadWaveletModel(pl.LightningModule):
         return y, h, loss_recon
 
     def step(self, batch, batch_idx, phase: Literal['train', 'test', 'val'] = 'train'):
-        x_wvt = batch[5]
+        x_wvt = batch[2]
 
         y_hat, h, loss_recon = self(x_wvt)
         loss = loss_recon
         self.log(f'loss_recon/{phase}', loss_recon)
 
         if y_hat is not None:
-            y = batch[6]
+            y = batch[-1]
             loss_cls = F.cross_entropy(y_hat, y)
             loss += loss_cls
             self.log(f'loss_cls/{phase}', loss_cls)

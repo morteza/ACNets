@@ -167,3 +167,4 @@ tmp/
 /outputs
 *.bkp
 lightning_logs/
+.~lock.*

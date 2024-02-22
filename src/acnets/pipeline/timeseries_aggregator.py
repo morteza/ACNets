@@ -30,11 +30,9 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
     if self.strategy is None:
       return dataset.copy()
 
-    new_dataset = dataset.copy()
-    new_dataset = new_dataset.set_coords('network')
-
     if self.strategy == 'wavelet':
       import pywt
+      new_dataset = dataset.copy()
       ts = dataset['timeseries'].transpose('subject', 'region', 'timepoint')
       coefs = pywt.wavedec(ts, wavelet=self._wavelet_name)
       coefs_image = np.concatenate(coefs, axis=2)
@@ -42,6 +40,11 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
       new_dataset['wavelets'] = (['subject', 'wavelet_dim', 'region'],
                                  coefs_image.transpose(0, 2, 1))  # subject, wavelet_dim, region
       return new_dataset
+
+    # if strategy is 'network' or 'random_network'
+
+    new_dataset = dataset.copy()
+    new_dataset = new_dataset.set_coords('network')
 
     if self.strategy == 'random_network':
       new_dataset['network'] = (['region'],

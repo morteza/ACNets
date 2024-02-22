@@ -7,6 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from ..pipeline import ConnectivityExtractor, TimeseriesAggregator, ConnectivityAggregator
 from sklearn.model_selection import train_test_split
 from src.acnets.parcellations.dosenbach import load_dosenbach2010_masker
+from src.acnets.parcellations import aal, dosenbach
 from pathlib import Path
 from joblib import Parallel, delayed
 import xarray as xr
@@ -48,10 +49,6 @@ class LEMONDataModule(pl.LightningDataModule):
                  batch_size=8,
                  num_workers=os.cpu_count() - 1):
 
-        # TODO support other atlases
-        if atlas != 'dosenbach2010':
-            raise ValueError('Only dosenbach2010 atlas is supported for now.')
-
         super().__init__()
         self.atlas = atlas
         self.kind = kind
@@ -65,14 +62,33 @@ class LEMONDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.y_encoder = LabelEncoder()
         self.num_workers = num_workers
-
         self.timeseries_dataset_path = Path(f'data/mpi-lemon/{self.atlas}_timeseries.nc')
+
+        match self.atlas:
+            case 'dosenbach2010':
+                self._atlas_masker, self._parcels = dosenbach.load_dosenbach2010_masker()
+            case 'aal':
+                from nilearn import maskers
+                import pandas as pd
+
+                self._parcels = pd.read_csv('data/atlases/AAL3v1.csv')
+                self._parcels.dropna(subset=['index'], inplace=True)
+                self._parcels.set_index('region', inplace=True)
+
+                self._atlas_masker = maskers.NiftiLabelsMasker(
+                    'data/atlases/AAL3v1.nii.gz',
+                    standardize='zscore_sample',
+                    standardize_confounds='zscore_sample',
+                    # detrend=True,
+                    verbose=0)
+
+            case _:
+                raise ValueError(f'Atlas {self.atlas} is not supported.')
 
     def extract_timeseries(self, t2_mni_file):
         subject = t2_mni_file.parents[1].stem
-        atlas_masker, _ = load_dosenbach2010_masker()
         try:
-            ts = atlas_masker.fit_transform(t2_mni_file)  # (m_timepoints, n_regions)
+            ts = self._atlas_masker.fit_transform(t2_mni_file)  # (m_timepoints, n_regions)
             return subject, ts
         except Exception as e:
             print('Error while extracting timeseries for', subject, e)
@@ -119,8 +135,7 @@ class LEMONDataModule(pl.LightningDataModule):
         if self.normalize:
             new_dataset['timeseries'] = self.normalize_timeseries(new_dataset['timeseries'])
 
-        _, regions = load_dosenbach2010_masker()
-        regions = regions.to_xarray().drop_vars('index')
+        regions = self._parcels.to_xarray().drop_vars('index')
 
         new_dataset = xr.merge([new_dataset, regions])
         dataset = xr.merge([dataset, new_dataset])
@@ -152,30 +167,37 @@ class LEMONDataModule(pl.LightningDataModule):
             print(f'no dataset file found, preparing {self.n_subjects} timeseries')
             self.prepare_data()
 
+        xs = []  # list of Xs
+
         with xr.open_dataset(self.timeseries_dataset_path, engine='h5netcdf') as dataset:
             dataset.load()
-            x1_time_regions = dataset.isel(subject=slice(self.n_subjects))
+            x_time_regions = dataset.isel(subject=slice(self.n_subjects))
+            xs.append(torch.Tensor(x_time_regions['timeseries'].values))
 
-        x2_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x1_time_regions)
-        x3_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x1_time_regions)
-        x4_conn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x3_time_networks)
-        x5_conn_networks = ConnectivityAggregator(strategy='network').fit_transform(x2_conn_regions)
-        x6_time_wavelets = TimeseriesAggregator(strategy='wavelet',
-                                                wavelet_name='db1',
-                                                # wavelet_coef_dim=100
-                                                ).fit_transform(x1_time_regions)
+        # connectivity
+        x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+        xs.append(torch.Tensor(x_conn_regions['connectivity'].values))
 
-        x1 = torch.Tensor(x1_time_regions['timeseries'].values)
-        x2 = torch.Tensor(x2_conn_regions['connectivity'].values)
-        x3 = torch.Tensor(x3_time_networks['timeseries'].values)
-        x4 = torch.Tensor(x4_conn_networks['connectivity'].values)
-        x5 = torch.Tensor(x5_conn_networks['connectivity'].values)
-        x6 = torch.Tensor(x6_time_wavelets['wavelets'].values)
+        # wavelets
+        x_time_wavelets = TimeseriesAggregator(strategy='wavelet',
+                                               wavelet_name='db1',
+                                               # wavelet_coef_dim=100
+                                               ).fit_transform(x_time_regions)
+        xs.append(torch.Tensor(x_time_wavelets['wavelets'].values))
 
-        self.full_data = TensorDataset(x1, x2, x3, x4, x5, x6)
+        # network-level time-series, ts-based connectivity, and conn-based connectivity
+        if 'network' in dataset.dims:
+            x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
+            xs.append(torch.Tensor(x_time_networks['timeseries'].values))
+            x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
+            xs.append(torch.Tensor(x_tconn_networks['connectivity'].values))
+            x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
+            xs.append(torch.Tensor(x_cconn_networks['connectivity'].values))
+
+        self.full_data = TensorDataset(*xs)
 
         # split into train, val and test
-        n_subjects = x1.shape[0]
+        n_subjects = xs[0].shape[0]
 
         if self.test_ratio is not None:
             train_idx, test_idx = train_test_split(
