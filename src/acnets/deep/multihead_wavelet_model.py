@@ -40,6 +40,8 @@ class MultiHeadWaveletModel(pl.LightningModule):
         self.n_wavelets = n_wavelets
         self.segment_length = segment_length
 
+        self.last_run_version = None
+
         self.accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
 
         self.feature_extractor = CVAE(n_regions, n_embeddings, kernel_size=5, stride=2)
@@ -124,14 +126,20 @@ class MultiHeadWaveletModel(pl.LightningModule):
     def fit(self, datamodule, max_epochs=100, with_classifier=False, **kwargs):
         # pre-train
         if with_classifier:
-            run_name = 'wvt_ft'
+            run_name = 'wvt_cls'
             ckpt_path = None
             callbacks = [RichProgressBar()]
             self.enable_finetune()
         else:
             run_name = 'wvt'
             ckpt_path = 'last'
-            callbacks = [RichProgressBar(), ModelCheckpoint(save_last=True)]
+            callbacks = [RichProgressBar(),
+                         ModelCheckpoint(
+                             dirpath='models/checkpoints/',
+                             filename='wvt-{epoch:02d}',
+                             every_n_epochs=10,
+                             every_n_train_steps=0,
+                             save_last=True)]
             self.disable_finetune()
 
         trainer = pl.Trainer(
@@ -139,11 +147,13 @@ class MultiHeadWaveletModel(pl.LightningModule):
             max_epochs=max_epochs,
             # accumulate_grad_batches=5,
             #  gradient_clip_val=.5,
-            logger=TensorBoardLogger('lightning_logs', name=run_name, version=1),
+            logger=TensorBoardLogger('lightning_logs', name=run_name,
+                                     version=self.last_run_version),
             log_every_n_steps=1,
             callbacks=callbacks,
-            enable_checkpointing=True,
             **kwargs)
+
+        self.last_run_version = 'version_{}'.format(trainer.logger.version)
 
         trainer.fit(self, datamodule=datamodule, ckpt_path=ckpt_path)
 
