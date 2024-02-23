@@ -75,60 +75,57 @@ class Julia2018DataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # just calling parcellation once, so time-series will be cached
-        Parcellation(
+        self.get_timeseries(self.dataset_path)
+
+    def get_timeseries(self, dataset_path, n_subjects=None):
+        x_time_regions = Parcellation(
             atlas_name=self.atlas,
-            bids_dir=self.dataset_path,
+            bids_dir=dataset_path,
             fmriprep_bids_space='MNI152NLin2009cAsym',
             normalize=True
         ).fit_transform(X=None)
+        return x_time_regions
 
     def setup(self, stage=None):
-        if stage == 'fit' or stage is None:
+        if stage != 'fit' and stage is not None:
+            # skip setup if reloading is not required
+            return
 
-            xs = []  # list to store the different data
+        xs = []  # list to store the different data
 
-            x_time_regions = Parcellation(
-                atlas_name=self.atlas,
-                bids_dir=self.dataset_path,
-                fmriprep_bids_space='MNI152NLin2009cAsym',
-                normalize=True
-            ).fit_transform(X=None)
+        x_time_regions = self.get_timeseries(self.dataset_path)
+        xs.append(torch.Tensor(x_time_regions['timeseries'].values))
 
-            xs.append(torch.Tensor(x_time_regions['timeseries'].values))
+        # connectivity
+        x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+        xs.append(torch.Tensor(x_conn_regions['connectivity'].values))
 
-            # connectivity
-            x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
-            xs.append(torch.Tensor(x_conn_regions['connectivity'].values))
+        # wavelets
+        x_time_wavelets = TimeseriesAggregator(strategy='wavelet', wavelet_name='db1').fit_transform(x_time_regions)
+        xs.append(torch.Tensor(x_time_wavelets['wavelets'].values))
 
-            # wavelets
-            x_time_wavelets = TimeseriesAggregator(strategy='wavelet',
-                                                wavelet_name='db1',
-                                                # wavelet_coef_dim=100
-                                                ).fit_transform(x_time_regions)
-            xs.append(torch.Tensor(x_time_wavelets['wavelets'].values))
+        # network-level time-series, ts-based connectivity, and conn-based connectivity
+        if 'network' in x_time_regions.dims:
+            x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
+            xs.append(torch.Tensor(x_time_networks['timeseries'].values))
+            x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
+            xs.append(torch.Tensor(x_tconn_networks['connectivity'].values))
+            x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
+            xs.append(torch.Tensor(x_cconn_networks['connectivity'].values))
 
-            # network-level time-series, ts-based connectivity, and conn-based connectivity
-            if 'network' in x_time_regions.dims:
-                x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
-                xs.append(torch.Tensor(x_time_networks['timeseries'].values))
-                x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
-                xs.append(torch.Tensor(x_tconn_networks['connectivity'].values))
-                x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
-                xs.append(torch.Tensor(x_cconn_networks['connectivity'].values))
+        # extract subject labels (AVGP or NVGP)
+        y = self.y_encoder.fit_transform([s[:4] for s in x_time_regions['subject'].values])
+        y = torch.tensor(y)
 
-            # extract subject labels (AVGP or NVGP)
-            y = self.y_encoder.fit_transform([s[:4] for s in x_time_regions['subject'].values])
-            y = torch.tensor(y)
+        self.full_data = TensorDataset(*xs, y)
 
-            self.full_data = TensorDataset(*xs, y)
+        # stratified split into train, val and test
+        n_subjects = len(y)
+        train_idx, test_idx = train_test_split(
+            torch.arange(n_subjects), test_size=self.test_ratio, stratify=y, shuffle=self.shuffle)
 
-            # stratified split into train, val and test
-            n_subjects = len(y)
-            train_idx, test_idx = train_test_split(
-                torch.arange(n_subjects), test_size=self.test_ratio, stratify=y, shuffle=self.shuffle)
-
-            self.train = torch.utils.data.Subset(self.full_data, train_idx)
-            self.test = torch.utils.data.Subset(self.full_data, test_idx)
+        self.train = torch.utils.data.Subset(self.full_data, train_idx)
+        self.test = torch.utils.data.Subset(self.full_data, test_idx)
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size,

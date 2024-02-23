@@ -85,7 +85,7 @@ class LEMONDataModule(pl.LightningDataModule):
             case _:
                 raise ValueError(f'Atlas {self.atlas} is not supported.')
 
-    def extract_timeseries(self, t2_mni_file):
+    def _image_to_timeseries(self, t2_mni_file):
         subject = t2_mni_file.parents[1].stem
         try:
             ts = self._atlas_masker.fit_transform(t2_mni_file)  # (m_timepoints, n_regions)
@@ -120,7 +120,7 @@ class LEMONDataModule(pl.LightningDataModule):
         t2_mni2mm_files = t2_mni2mm_files[n_available_subjects:self.n_subjects]
 
         timeseries = Parallel(n_jobs=self.num_workers)(
-            delayed(self.extract_timeseries)(t2_mni_file)
+            delayed(self._image_to_timeseries)(t2_mni_file)
             for t2_mni_file in t2_mni2mm_files)
         timeseries = dict(timeseries)  # e.g., {sub1: ts1, sub2: ts2, ...}
 
@@ -141,6 +141,12 @@ class LEMONDataModule(pl.LightningDataModule):
         dataset = xr.merge([dataset, new_dataset])
 
         dataset.to_netcdf(self.timeseries_dataset_path, engine='h5netcdf')
+
+    def get_timeseries(self, dataset_path, n_subjects):
+        with xr.open_dataset(dataset_path, engine='h5netcdf') as dataset:
+            dataset.load()
+            x_time_regions = dataset.isel(subject=slice(n_subjects))
+        return x_time_regions
 
     def setup(self, stage=None):
 
@@ -169,16 +175,15 @@ class LEMONDataModule(pl.LightningDataModule):
 
         xs = []  # list of Xs
 
-        with xr.open_dataset(self.timeseries_dataset_path, engine='h5netcdf') as dataset:
-            dataset.load()
-            x_time_regions = dataset.isel(subject=slice(self.n_subjects))
-            xs.append(torch.Tensor(x_time_regions['timeseries'].values))
+        # time-series (index = 0)
+        x_time_regions = self.get_timeseries(self.timeseries_dataset_path, self.n_subjects)
+        xs.append(torch.Tensor(x_time_regions['timeseries'].values))
 
-        # connectivity
+        # connectivity (index = 1)
         x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
         xs.append(torch.Tensor(x_conn_regions['connectivity'].values))
 
-        # wavelets
+        # wavelets (index = 2)
         x_time_wavelets = TimeseriesAggregator(strategy='wavelet',
                                                wavelet_name='db1',
                                                # wavelet_coef_dim=100
@@ -187,10 +192,13 @@ class LEMONDataModule(pl.LightningDataModule):
 
         # network-level time-series, ts-based connectivity, and conn-based connectivity
         if 'network' in dataset.dims:
+            #  (index = 3)
             x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
             xs.append(torch.Tensor(x_time_networks['timeseries'].values))
+            # (index = 4)
             x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
             xs.append(torch.Tensor(x_tconn_networks['connectivity'].values))
+            # (index = 5)
             x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
             xs.append(torch.Tensor(x_cconn_networks['connectivity'].values))
 
