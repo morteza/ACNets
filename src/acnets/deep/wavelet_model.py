@@ -6,8 +6,9 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import RichProgressBar, ModelCheckpoint
 import torchmetrics as metrics
-from .causal_vae import CausalVAE
-
+from .seq2seq import Seq2SeqAutoEncoder
+from .vae import VariationalAutoEncoder
+from .cvae import CVAE
 
 class Classifier(pl.LightningModule):
     def __init__(self, n_inputs=32):
@@ -30,12 +31,13 @@ class Classifier(pl.LightningModule):
         return self.model(x)
 
 
-class MultiHeadCausalModel(pl.LightningModule):
-    def __init__(self, n_regions, n_embeddings=2, segment_length=32):
+class WaveletModel(pl.LightningModule):
+    def __init__(self, n_regions, n_wavelets=124, n_embeddings=2, segment_length=32):
         super().__init__()
 
         self.n_regions = n_regions
         self.n_embeddings = n_embeddings
+        self.n_wavelets = n_wavelets
         self.segment_length = segment_length
         self.phase: Literal['pretrain', 'finetune', None] = None
 
@@ -43,29 +45,29 @@ class MultiHeadCausalModel(pl.LightningModule):
 
         self.accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
 
-        self.feature_extractor = CausalVAE(segment_length, n_embeddings, mask_size=4)
+        self.feature_extractor = CVAE(n_regions, n_embeddings, kernel_size=5, stride=2)
         self.cls_head = Classifier(n_embeddings)
 
-    def forward(self, x):
+    def forward(self, x_wvt):
         """_summary_
 
         Args:
-            x (torch.Tensor): shape: (subjects, timepoints, regions)
+            x_wvt (torch.Tensor): shape: (subjects, wavelets, regions)
 
         Returns:
             y, h, loss_recon
         """
 
+        x = x_wvt[:, :self.n_wavelets, :]  # -> shape: (subjects, wavelets, regions)
+
         x_segments = x.unfold(1, self.segment_length, self.segment_length)
         x_segments = x_segments.reshape(-1, self.segment_length, self.n_regions)
         x_segments = x_segments.permute(0, 2, 1)  # -> shape: (subjects * segments, regions, segment_length)
-        x_segments = x_segments.contiguous().reshape(-1, self.segment_length)
 
         h, x_segments_recon, loss_recon = self.feature_extractor(x_segments)
 
         if self.phase == 'finetune':
             y = self.cls_head(h)
-            # TODO fix this, it's not working (e.g., move segmentation to the right place, etc.)
             y = y.reshape(x.size(0), -1, 2)
             y = y.mean(dim=1)
         else:
@@ -77,9 +79,9 @@ class MultiHeadCausalModel(pl.LightningModule):
         self.phase = phase
 
     def step(self, batch, batch_idx, label: Literal['train', 'val', 'test'] = 'train'):
-        x = batch[0]
+        x_wvt = batch[2]
 
-        y_hat, h, loss_recon = self(x)
+        y_hat, h, loss_recon = self(x_wvt)
         loss = loss_recon
         self.log(f'loss_recon/{label}', loss_recon)
 
@@ -98,7 +100,6 @@ class MultiHeadCausalModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         if self.phase == 'finetune':
             self.unfreeze()
-            # self.cls_head.unfreeze()
             # self.feature_extractor.decoder.freeze()
             # self.feature_extractor.freeze()
             return self.step(batch, batch_idx, label='train')
@@ -127,7 +128,7 @@ class MultiHeadCausalModel(pl.LightningModule):
 
         match self.phase:
             case 'pretrain':
-                run_name = 'causal'
+                run_name = 'wvt'
                 ckpt_path = 'last'
                 callbacks = [RichProgressBar(),
                              ModelCheckpoint(
@@ -137,7 +138,7 @@ class MultiHeadCausalModel(pl.LightningModule):
                                  every_n_train_steps=0,
                                  save_last=True)]
             case 'finetune':
-                run_name = 'causal_cls'
+                run_name = 'wvt_cls'
                 ckpt_path = None
                 callbacks = [RichProgressBar()]
             case _:

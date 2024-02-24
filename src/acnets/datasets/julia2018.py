@@ -1,143 +1,144 @@
+import os
+import pytorch_lightning as pl
+import torch
+from torch.utils.data import DataLoader, TensorDataset
+
+from sklearn.preprocessing import LabelEncoder
+from ..pipeline import Parcellation, ConnectivityExtractor, TimeseriesAggregator, ConnectivityAggregator
+from sklearn.model_selection import train_test_split
 from pathlib import Path
-import numpy as np
-import xarray as xr
-import pandas as pd
 
 
-__supported_parcellations = [
-    'dosenbach2007', 'dosenbach2010', 'difumo_64_2mm', 'difumo_128_2mm', 'difumo_1024_2mm',]
+class Julia2018DataModule(pl.LightningDataModule):
+    """Julia2018 preprocessed resting-state dataset.
 
-__supported_kinds = [
-    'tangent', 'precision', 'correlation', 'covariance', 'partial_correlation',
-    'chatterjee', 'transfer_entropy']
+    Args:
+        atlas (str): default='dosenbach2010'
+            The name of the atlas to use for parcellation.
+        kind (str) default='partial correlation'
+            The kind of connectivity to extract.
+        test_ratio float): default=.25
+            The ratio of the dataset to include in the test split.
 
+    Attributes:
+        All the train, val, test and full_data attributes are torch.utils.data.Dataset objects
+        and contain the following attributes:
+            x1: time-series (regions x timepoints)
+            x2: connectivity (regions x regions)
+            x3: time-series (networks x timepoints)
+            x4: connectivity (networks x networks)
+            x5: connectivity (networks x networks)
+            y: subject labels (AVGP or NVGP)
 
-def __get_feature_name(feature_info,
-                       sep=' \N{left right arrow} '):
+    """
 
-  names = feature_info.index.to_series().apply(
-      lambda f1: f1 if f1 == feature_info.name else f'{f1}{sep}{feature_info.name}')
+    def __init__(self,
+                 atlas='dosenbach2010',
+                 kind='partial correlation',
+                 dataset_path=Path('data/julia2018/'),
+                 test_ratio=.25,
+                 shuffle=True,
+                 batch_size=8,
+                 num_workers=os.cpu_count() - 1):
 
-  return names
+        super().__init__()
+        self.atlas = atlas
+        self.kind = kind
+        self.dataset_path = dataset_path
+        self.test_ratio = test_ratio
+        self.train_ratio = 1 - test_ratio
+        self.shuffle = shuffle
+        self.batch_size = batch_size
+        self.y_encoder = LabelEncoder()
+        self.num_workers = num_workers
 
+        match self.atlas:
+            case 'dosenbach2010':
+                self._atlas_masker, self._parcels = dosenbach.load_dosenbach2010_masker()
+            case 'aal':
+                from nilearn import maskers
+                import pandas as pd
 
-def get_networks(features, parcellation):
-  from nilearn.datasets import fetch_coords_dosenbach_2010
+                self._parcels = pd.read_csv('data/atlases/AAL3v1.csv')
+                self._parcels.dropna(subset=['index'], inplace=True)
+                self._parcels.set_index('region', inplace=True)
 
-  if parcellation.lower() == 'dosenbach2010':
-    coords = fetch_coords_dosenbach_2010(legacy_format=False)
-    labels = pd.concat([
-        pd.Series(coords['labels']),
-        coords['networks'].reset_index(drop=True)], axis=1)
-    labels.rename({0: 'region'}, inplace=True)
-    labels.set_index(0, inplace=True)
-  elif parcellation.lower() == 'dosenbach2007':
-    labels = pd.read_csv('data/dosenbach2007/ROIS.csv', index_col=0)
-    labels = labels[['network']]
+                self._atlas_masker = maskers.NiftiLabelsMasker(
+                    'data/atlases/AAL3v1.nii.gz',
+                    standardize='zscore_sample',
+                    standardize_confounds='zscore_sample',
+                    # detrend=True,
+                    verbose=0)
 
-  networks = []
+            case _:
+                raise ValueError(f'Atlas {self.atlas} is not supported.')
 
-  for f in features:
-    if '↔' in f:
-      src, tgt = f.split(' ↔ ')
-      src_network = labels.loc[src, 'network']
-      tgt_network = labels.loc[tgt, 'network']
-      if src_network == tgt_network:
-        network = labels.loc[src, 'network']
-      else:
-        network = f'{src_network} ↔ {tgt_network}'
-    else:
-      network = labels.loc[f, 'network']
+    def prepare_data(self):
+        # just calling parcellation once, so time-series will be cached
+        self.get_timeseries(self.dataset_path)
 
-    networks.append((network, f))
+    def get_timeseries(self, dataset_path, n_subjects=None):
+        x_time_regions = Parcellation(
+            atlas_name=self.atlas,
+            bids_dir=dataset_path,
+            fmriprep_bids_space='MNI152NLin2009cAsym',
+            normalize=True
+        ).fit_transform(X=None)
+        return x_time_regions
 
-  return networks
+    def setup(self, stage=None):
+        if stage != 'fit' and stage is not None:
+            # skip setup if reloading is not required
+            return
 
+        xs = []  # list to store the different data
 
-def load_julia2018_connectivity(
-    dataset='julia2018_resting',
-    parcellation='dosenbach2007',
-    kind='tangent',
-    discard_invalid_subjects=False,
-    vectorize=False,
-    binarize=False,
-    only_diagonal=False,
-    discard_diagonal=False,
-    return_y=None,
-    filename=None,
-    **kwargs
-):
+        x_time_regions = self.get_timeseries(self.dataset_path)
+        xs.append(torch.Tensor(x_time_regions['timeseries'].values))
 
-  if parcellation not in __supported_parcellations:
-    raise ValueError('Invalid parcellation atlas: {}'.format(parcellation))
+        # connectivity
+        x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+        xs.append(torch.Tensor(x_conn_regions['connectivity'].values))
 
-  if kind not in __supported_kinds:
-    raise ValueError('Invalid connectivity kind: {}'.format(kind))
+        # wavelets
+        x_time_wavelets = TimeseriesAggregator(strategy='wavelet', wavelet_name='db1').fit_transform(x_time_regions)
+        xs.append(torch.Tensor(x_time_wavelets['wavelets'].values))
 
-  # NOTE these are currently hidden kwargs because of irrelevance to the loading
-  shuffle = kwargs.get('shuffle', False)  # noqa
+        # network-level time-series, ts-based connectivity, and conn-based connectivity
+        if 'network' in x_time_regions.dims:
+            x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
+            xs.append(torch.Tensor(x_time_networks['timeseries'].values))
+            x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
+            xs.append(torch.Tensor(x_tconn_networks['connectivity'].values))
+            x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
+            xs.append(torch.Tensor(x_cconn_networks['connectivity'].values))
 
-  filename = filename or (Path('data') / dataset / f'connectivity_{parcellation}.nc')
+        # extract subject labels (AVGP or NVGP)
+        y = self.y_encoder.fit_transform([s[:4] for s in x_time_regions['subject'].values])
+        y = torch.tensor(y)
 
-  ds = xr.open_dataset(filename)
+        self.full_data = TensorDataset(*xs, y)
 
-  _conn = ds[f'{kind}_connectivity']
-  _conn.coords['group'] = ds.group
-  _conn['inverse_efficiency_score_ms'] = ds['inverse_efficiency_score_ms']
+        # stratified split into train, val and test
+        n_subjects = len(y)
+        train_idx, test_idx = train_test_split(
+            torch.arange(n_subjects), test_size=self.test_ratio, stratify=y, shuffle=self.shuffle)
 
-  if 'difumo_names' in ds.coords:
-    _conn.coords['region'] = ds.coords['difumo_names'].values
+        self.train = torch.utils.data.Subset(self.full_data, train_idx)
+        self.test = torch.utils.data.Subset(self.full_data, test_idx)
 
-  regions = ds.coords['region'].values
+    def train_dataloader(self):
+        return DataLoader(self.train, batch_size=self.batch_size,
+                          num_workers=self.num_workers,
+                          persistent_workers=True)
 
-  if only_diagonal:
-    diag_conn = np.array([np.diag(subj_conn) for subj_conn in _conn.values])
-    X = pd.DataFrame(diag_conn, index=ds.coords['subject'], columns=regions)
-  else:
-    feature_names = pd.DataFrame(np.empty((len(regions), len(regions))),
-                                 index=regions, columns=regions)
-    feature_names = feature_names.apply(__get_feature_name)
-    X = _conn.values
+    def val_dataloader(self):
+        # FIXME Note this is the same as the test dataloader (change to self.val for separate validation set)
+        return DataLoader(self.test, batch_size=self.batch_size,
+                          num_workers=self.num_workers,
+                          persistent_workers=True)
 
-    if binarize:  # binarize
-      X_bin = []
-      from sklearn.preprocessing import Binarizer
-      for X_subj in X:
-        threshold = np.median(X_subj) + float(binarize) * np.std(X_subj)
-        X_subj_bin = Binarizer(threshold=threshold).transform(np.abs(X_subj))
-        X_bin.append(X_subj_bin)
-      X = np.array(X_bin)
-
-  if discard_invalid_subjects:
-    behavioral_scores = ds['inverse_efficiency_score_ms'].values
-    subj_labels = xr.concat([ds['subject'], ds['subject'] + 'NEW'], dim='subject')
-    invalid_subjects = subj_labels.to_series().duplicated(keep='first')[32:]
-    invalid_subjects = invalid_subjects | np.isnan(behavioral_scores)
-    invalid_subjects = np.isnan(behavioral_scores)
-    print(invalid_subjects)
-    X = X[~invalid_subjects]
-
-  if vectorize and not only_diagonal:
-    triu_k = 1 if discard_diagonal else 0
-    vec_conns = np.array(
-        [subj_conn[np.triu_indices_from(subj_conn, k=triu_k)]
-         for subj_conn in X])
-
-    vec_feature_names = feature_names.values[
-        np.triu_indices_from(feature_names.values, k=triu_k)]
-    X = pd.DataFrame(vec_conns, index=ds.coords['subject'], columns=vec_feature_names)
-
-  if return_y:
-    y = ds['group'].values
-    if discard_invalid_subjects:
-      y = y[~invalid_subjects]
-
-  X.columns = pd.MultiIndex.from_tuples(get_networks(X.columns, parcellation))
-
-  if shuffle:
-    raise NotImplementedError('Shuffling is not implemented yet')
-
-  if return_y:
-    return X, y
-  else:
-    return X
+    def test_dataloader(self):
+        return DataLoader(self.test, batch_size=self.batch_size,
+                          num_workers=self.num_workers,
+                          persistent_workers=True)

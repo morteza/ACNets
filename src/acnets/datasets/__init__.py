@@ -1,3 +1,4 @@
-from .julia2018 import load_julia2018_connectivity
+from ..datasets.julia2018 import Julia2018DataModule
+from ..datasets.lemon import LEMONDataModule
 
-__all__ = ['load_julia2018_connectivity']
+__all__ = ['Julia2018DataModule', 'LEMONDataModule']

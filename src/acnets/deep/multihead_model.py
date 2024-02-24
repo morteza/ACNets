@@ -3,7 +3,6 @@ from torch.nn import functional as F
 from torch import nn
 import pytorch_lightning as pl
 import torchmetrics as metrics
-from .seq2seq import Seq2SeqAutoEncoder
 from .vae import VariationalAutoEncoder
 
 

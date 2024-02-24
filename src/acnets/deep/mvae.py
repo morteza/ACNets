@@ -37,7 +37,7 @@ class Decoder(pl.LightningModule):
         return out
 
 
-class CausalVAE(pl.LightningModule):
+class MaskedVAE(pl.LightningModule):
     def __init__(self, n_inputs, n_embeddings, mask_size):
         super().__init__()
         self.n_embeddings = n_embeddings
