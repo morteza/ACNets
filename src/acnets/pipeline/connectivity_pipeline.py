@@ -29,8 +29,6 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
         Strategy to aggregate connectivity matrices. See `acnets.pipeline.ConnectivityAggregator`.
     bids_dir : PathLike, default='data/julia2018'
         Path to BIDS directory.
-    parcellation_cache_dir : PathLike, default='data/julia2018/derivatives/resting_timeseries/'
-        Path to directory to cache parcellation results.
 
     Attributes
     ----------
@@ -51,7 +49,6 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
 
     #  if you are using Ray Tune, set these params to absolute paths.
     bids_dir: PathLike = 'data/julia2018'
-    parcellation_cache_dir: PathLike = 'data/julia2018/derivatives/resting_timeseries/'
 
     def fit(self, X, y=None, **fit_params):
         return self
@@ -59,8 +56,7 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
     def transform(self, X):
 
         pipe = Pipeline([
-            ('parcellation', Parcellation(self.atlas, bids_dir=self.bids_dir,
-                                          cache_dir=self.parcellation_cache_dir)),
+            ('parcellation', Parcellation(self.atlas, bids_dir=self.bids_dir)),
             ('timeseries_aggregation', TimeseriesAggregator(strategy=self.timeseries_aggregation)),
             ('connectivity', ConnectivityExtractor(self.kind)),
             ('connectivity_aggregation', ConnectivityAggregator(strategy=self.connectivity_aggregation))
