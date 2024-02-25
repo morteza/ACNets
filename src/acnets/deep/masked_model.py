@@ -35,9 +35,8 @@ class MaskedModel(pl.LightningModule):
     def __init__(self, n_regions, n_embeddings=2, segment_length=32):
         super().__init__()
 
-        self.n_regions = n_regions
-        self.n_embeddings = n_embeddings
-        self.segment_length = segment_length
+        self.save_hyperparameters()
+
         self.phase: Literal['pretrain', 'finetune', None] = None
 
         self.last_run_version = None
@@ -58,8 +57,11 @@ class MaskedModel(pl.LightningModule):
             y, h, loss_recon
         """
 
-        x_segments = x.unfold(1, self.segment_length, self.segment_length)
-        x_segments = x_segments.reshape(-1, self.segment_length, self.n_regions)
+        seg_len = self.hparams['segment_length']
+        n_features = self.hparams['n_regions']
+
+        x_segments = x.unfold(1, seg_len, seg_len)
+        x_segments = x_segments.reshape(-1, seg_len, n_features)
         # x_segments = x_segments.permute(0, 2, 1)  # -> shape: (subjects * segments, regions, segment_length)
         # x_segments = x_segments.contiguous().reshape(-1, self.segment_length)
 
