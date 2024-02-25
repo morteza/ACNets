@@ -41,24 +41,18 @@ class Julia2018DataModule(pl.LightningDataModule):
                      'time_regions', 'time_networks', 'time_wavelets',
                      'conn_regions', 'cconn_networks', 'tconn_networks'] = 'time_regions',
                  dataset_path=Path('data/julia2018/'),
+                 segment_length: int = -1,  # -1 for full timeseries
                  test_ratio=.25,
                  shuffle=True,
                  batch_size=8,
-                 num_workers=os.cpu_count() - 1):
+                 num_workers=os.cpu_count() - 1):  # type: ignore
 
         super().__init__()
-        self.atlas = atlas
-        self.kind = kind
-        self.aggregation_strategy = aggregation_strategy
-        self.dataset_path = dataset_path
-        self.test_ratio = test_ratio
-        self.train_ratio = 1 - test_ratio
-        self.shuffle = shuffle
-        self.batch_size = batch_size
-        self.y_encoder = LabelEncoder()
-        self.num_workers = num_workers
+        self.save_hyperparameters()
 
-        match self.atlas:
+        self.y_encoder = LabelEncoder()
+
+        match atlas:
             case 'dosenbach2010':
                 self._atlas_masker, self._parcels = dosenbach.load_dosenbach2010_masker()
             case 'aal':
@@ -77,33 +71,41 @@ class Julia2018DataModule(pl.LightningDataModule):
                     verbose=0)
 
             case _:
-                raise ValueError(f'Atlas {self.atlas} is not supported.')
+                raise ValueError(f'Atlas {atlas} is not supported.')
 
     def prepare_data(self):
         # just calling parcellation once, so time-series will be cached
-        self.get_timeseries(self.dataset_path)
+        self.get_timeseries(self.hparams['dataset_path'])
 
     def get_timeseries(self, dataset_path, n_subjects=None):
         x_time_regions = Parcellation(
-            atlas_name=self.atlas,
+            atlas_name=self.hparams['atlas'],
             bids_dir=dataset_path,
             fmriprep_bids_space='MNI152NLin2009cAsym',
             normalize=True
         ).fit_transform(X=None)
         return x_time_regions
 
+    def segment_timeseries(self, x):
+        if self.hparams['segment_length'] > 0:
+            n_features = x.shape[-1]
+            x = x.unfold(1, self.hparams['segment_length'], self.hparams['segment_length'])
+            x = x.reshape(-1, self.hparams['segment_length'], n_features)
+        return x
+
     def setup(self, stage=None):
         if stage != 'fit' and stage is not None:
             # skip setup if reloading is not required
             return
 
-        x_time_regions = self.get_timeseries(self.dataset_path)
+        x_time_regions = self.get_timeseries(self.hparams['dataset_path'])
 
-        match self.aggregation_strategy:
+        match self.hparams['aggregation_strategy']:
             case 'time_regions':
                 x = torch.Tensor(x_time_regions['timeseries'].values)
             case 'conn_regions':
-                x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+                x_conn_regions = ConnectivityExtractor(
+                    kind=self.hparams['kind']).fit_transform(x_time_regions)
                 x = torch.Tensor(x_conn_regions['connectivity'].values)
             case 'time_wavelets':
                 x_time_wavelets = TimeseriesAggregator(
@@ -115,41 +117,50 @@ class Julia2018DataModule(pl.LightningDataModule):
             case 'tconn_networks' if 'network' in x_time_regions.data_vars.keys():
                 x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_networks['timeseries'].values)
-                x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
+                x_tconn_networks = ConnectivityExtractor(
+                    kind=self.hparams['kind']).fit_transform(x_time_networks)
                 x = torch.Tensor(x_tconn_networks['connectivity'].values)
             case 'cconn_networks' if 'network' in x_time_regions.data_vars.keys():
-                x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+                x_conn_regions = ConnectivityExtractor(
+                    kind=self.hparams['kind']).fit_transform(x_time_regions)
                 x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
                 x = torch.Tensor(x_cconn_networks['connectivity'].values)
             case _:
-                raise ValueError(f'Aggregation strategy {self.aggregation_strategy} is not supported.')
+                raise ValueError(f'Aggregation strategy {self.hparams["aggregation_strategy"]} '
+                                 'is not supported.')
 
         # extract subject labels (AVGP or NVGP)
         y = self.y_encoder.fit_transform([s[:4] for s in x_time_regions['subject'].values])
         y = torch.tensor(y)
+
+        if 'time' in self.hparams['aggregation_strategy'] and self.hparams['segment_length'] > 0:
+            x = self.segment_timeseries(x)
+            # TODO match y to x
+            y = y.repeat_interleave(x.shape[0] // y.shape[0])
 
         self.full_data = TensorDataset(x, y)
 
         # stratified split into train, val and test
         n_subjects = len(y)
         train_idx, test_idx = train_test_split(
-            torch.arange(n_subjects), test_size=self.test_ratio, stratify=y, shuffle=self.shuffle)
+            torch.arange(n_subjects),
+            test_size=self.hparams['test_ratio'], stratify=y, shuffle=self.hparams['shuffle'])
 
         self.train = torch.utils.data.Subset(self.full_data, train_idx)
         self.test = torch.utils.data.Subset(self.full_data, test_idx)
 
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size,
-                          num_workers=self.num_workers,
+        return DataLoader(self.train, batch_size=self.hparams['batch_size'],
+                          num_workers=self.hparams['num_workers'],
                           persistent_workers=True)
 
     def val_dataloader(self):
         # FIXME Note this is the same as the test dataloader (change to self.val for separate validation set)
-        return DataLoader(self.test, batch_size=self.batch_size,
-                          num_workers=self.num_workers,
+        return DataLoader(self.test, batch_size=self.hparams['batch_size'],
+                          num_workers=self.hparams['num_workers'],
                           persistent_workers=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size,
-                          num_workers=self.num_workers,
+        return DataLoader(self.test, batch_size=self.hparams['batch_size'],
+                          num_workers=self.hparams['num_workers'],
                           persistent_workers=True)

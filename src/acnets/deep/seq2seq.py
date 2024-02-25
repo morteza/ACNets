@@ -37,6 +37,15 @@ class Seq2SeqAE(nn.Module):
         self.decoder = Decoder(n_embeddings, input_size)
 
     def forward(self, x):
+        """
+
+        Args:
+            x (torch.Tensor): of shape (batch_size, n_timepoints, input_size)
+
+        Returns:
+            h, x_recon, loss
+        """
+
         batch_size, n_timepoints, _ = x.shape
 
         # encode

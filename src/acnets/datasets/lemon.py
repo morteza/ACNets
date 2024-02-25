@@ -22,19 +22,18 @@ class LEMONDataModule(pl.LightningDataModule):
             The name of the atlas to use for parcellation.
         kind (str) default='partial correlation'
             The kind of connectivity to extract.
-        test_ratio float): default=.25
+        test_ratio (float): default=.25
             The ratio of the dataset to include in the test split.
 
     Attributes:
         All the train, val, test and full_data attributes are torch.utils.data.Dataset objects
         and contain the following attributes:
-            x1: time-series (regions x timepoints)
-            x2: connectivity (regions x regions)
-            x3: time-series (networks x timepoints)
-            x4: connectivity (networks x networks)
-            x5: connectivity (networks x networks)
-            x6: wavelets (regions x wavelets)
-
+            time_regions: (subjects, timepoints, regions)
+            time_networks: (subjects, timepoints, networks)
+            time_wavelets: (subjects, timepoints, wavelets)
+            conn_regions: (subjects, regions, regions)
+            cconn_networks: (subjects, networks, networks)
+            tconn_networks: (subjects, networks, networks)
     """
 
     def __init__(self,
@@ -44,31 +43,22 @@ class LEMONDataModule(pl.LightningDataModule):
                      'time_regions', 'time_networks', 'time_wavelets',
                      'conn_regions', 'cconn_networks', 'tconn_networks'] = 'time_regions',
                  dataset_path=Path('/mnt/Lifestream/MPI-LEMON/MRI_Preprocessed_Derivatives/'),
-                 n_subjects=5,
+                 n_subjects: int = 5,
+                 segment_length: int = -1,  # -1 for full timeseries
                  test_ratio=.25,
                  val_ratio=.125,
                  normalize=True,
                  shuffle=True,
                  batch_size=8,
-                 num_workers=os.cpu_count() - 1):
+                 num_workers=os.cpu_count() - 1):  # noqa
 
         super().__init__()
-        self.atlas = atlas
-        self.kind = kind
-        self.aggregation_strategy = aggregation_strategy
-        self.dataset_path = dataset_path
-        self.n_subjects = n_subjects
-        self.test_ratio = test_ratio
-        self.val_ratio = val_ratio
-        self.train_ratio = 1 - test_ratio - val_ratio if test_ratio is not None else 1
-        self.normalize = normalize
-        self.shuffle = shuffle
-        self.batch_size = batch_size
-        self.y_encoder = LabelEncoder()
-        self.num_workers = num_workers
-        self.timeseries_dataset_path = Path(f'data/mpi-lemon/{self.atlas}_timeseries.nc')
+        self.save_hyperparameters()
 
-        match self.atlas:
+        self.y_encoder = LabelEncoder()
+        self.timeseries_dataset_path = Path(f'data/mpi-lemon/{atlas}_timeseries.nc')
+
+        match atlas:
             case 'dosenbach2010':
                 self._atlas_masker, self._parcels = dosenbach.load_dosenbach2010_masker()
             case 'aal':
@@ -87,7 +77,7 @@ class LEMONDataModule(pl.LightningDataModule):
                     verbose=0)
 
             case _:
-                raise ValueError(f'Atlas {self.atlas} is not supported.')
+                raise ValueError(f'Atlas {atlas} is not supported.')
 
     def _image_to_timeseries(self, t2_mni_file):
         subject = t2_mni_file.parents[1].stem
@@ -112,18 +102,18 @@ class LEMONDataModule(pl.LightningDataModule):
             with xr.open_dataset(self.timeseries_dataset_path) as dataset:
                 dataset.load()
             n_available_subjects = dataset.sizes['subject']
-            if n_available_subjects >= self.n_subjects:
+            if n_available_subjects >= self.hparams['n_subjects']:
                 return
         else:
             n_available_subjects = 0
             dataset = xr.Dataset()
             dataset.attrs['space'] = 'MNI2mm'
 
-        t2_mni2mm_files = list(sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz')))
-        self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
-        t2_mni2mm_files = t2_mni2mm_files[n_available_subjects:self.n_subjects]
+        t2_mni2mm_files = list(sorted(self.hparams['dataset_path'].glob('**/func/*MNI2mm.nii.gz')))
+        self.hparams['n_subjects'] = min(self.hparams['n_subjects'], len(t2_mni2mm_files))
+        t2_mni2mm_files = t2_mni2mm_files[n_available_subjects:self.hparams['n_subjects']]
 
-        timeseries = Parallel(n_jobs=self.num_workers)(
+        timeseries = Parallel(n_jobs=self.hparams['num_workers'])(
             delayed(self._image_to_timeseries)(t2_mni_file)
             for t2_mni_file in t2_mni2mm_files)
         timeseries = dict(timeseries)  # e.g., {sub1: ts1, sub2: ts2, ...}
@@ -136,7 +126,7 @@ class LEMONDataModule(pl.LightningDataModule):
             coords={'subject': list(timeseries.keys())}
         )
 
-        if self.normalize:
+        if self.hparams['normalize']:
             new_dataset['timeseries'] = self.normalize_timeseries(new_dataset['timeseries'])
 
         regions = self._parcels.to_xarray().drop_vars('index')
@@ -152,68 +142,85 @@ class LEMONDataModule(pl.LightningDataModule):
             x_time_regions = dataset.isel(subject=slice(n_subjects))
         return x_time_regions
 
+    def segment_timeseries(self, x):
+        if self.hparams['segment_length'] > 0:
+            n_features = x.shape[-1]
+            x = x.unfold(1, self.hparams['segment_length'], self.hparams['segment_length'])
+            x = x.reshape(-1, self.hparams['segment_length'], n_features)
+        return x
+
     def setup(self, stage=None):
 
         if stage != 'fit' and stage is not None:
             # skip setup if reloading is not required
             return
 
-        t2_mni2mm_files = sorted(self.dataset_path.glob('**/func/*MNI2mm.nii.gz'))
+        t2_mni2mm_files = sorted(self.hparams['dataset_path'].glob('**/func/*MNI2mm.nii.gz'))
 
         if len(t2_mni2mm_files) > 0:
-            self.n_subjects = min(self.n_subjects, len(t2_mni2mm_files))
+            self.hparams['n_subjects'] = min(self.hparams['n_subjects'], len(t2_mni2mm_files))
 
         if self.timeseries_dataset_path.exists():
             with xr.open_dataset(self.timeseries_dataset_path) as dataset:
                 dataset.load()
             n_available_subjects = dataset.sizes['subject']
-            if n_available_subjects < self.n_subjects:
-                # run preprocessing if the dataset file does not have enough subjects
-                print(f'only {n_available_subjects} timeseries available,'
-                      f' preparing {self.n_subjects - n_available_subjects} more timeseries')
-                self.prepare_data()
+            if n_available_subjects < self.hparams['n_subjects']:
+                if n_available_subjects < len(t2_mni2mm_files):
+                    # run preprocessing if the dataset file does not have enough subjects
+                    print(f'only {n_available_subjects} timeseries available, '
+                          f'preparing {self.hparams["n_subjects"] - n_available_subjects} more timeseries')
+                    self.prepare_data()
         else:
             # run preprocessing if the dataset file does not exist
-            print(f'no dataset file found, preparing {self.n_subjects} timeseries')
+            print(f'no dataset file found, preparing {self.hparams["n_subjects"]} timeseries')
             self.prepare_data()
 
         # time-series (index = 0)
-        x_time_regions = self.get_timeseries(self.timeseries_dataset_path, self.n_subjects)
+        x_time_regions = self.get_timeseries(self.timeseries_dataset_path, self.hparams['n_subjects'])
 
-        match self.aggregation_strategy:
+        match self.hparams['aggregation_strategy']:
             case 'time_regions':
                 x = torch.Tensor(x_time_regions['timeseries'].values)
             case 'conn_regions':
-                x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+                x_conn_regions = ConnectivityExtractor(
+                    kind=self.hparams['kind']).fit_transform(x_time_regions)
                 x = torch.Tensor(x_conn_regions['connectivity'].values)
             case 'time_wavelets':
                 x_time_wavelets = TimeseriesAggregator(
                     strategy='wavelet', wavelet_name='db1').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_wavelets['wavelets'].values)
-            case 'time_networks' if 'network' in x_time_regions.dims:
+            case 'time_networks' if 'network' in x_time_regions.data_vars.keys():
                 x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_networks['timeseries'].values)
-            case 'tconn_networks' if 'network' in x_time_regions.dims:
+            case 'tconn_networks' if 'network' in x_time_regions.data_vars.keys():
                 x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_networks['timeseries'].values)
-                x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
+                x_tconn_networks = ConnectivityExtractor(
+                    kind=self.hparams['kind']).fit_transform(x_time_networks)
                 x = torch.Tensor(x_tconn_networks['connectivity'].values)
-            case 'cconn_networks' if 'network' in x_time_regions.dims:
-                x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+            case 'cconn_networks' if 'network' in x_time_regions.data_vars.keys():
+                x_conn_regions = ConnectivityExtractor(
+                    kind=self.hparams['kind']).fit_transform(x_time_regions)
                 x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
                 x = torch.Tensor(x_cconn_networks['connectivity'].values)
             case _:
-                raise ValueError(f'Aggregation strategy {self.aggregation_strategy} is not supported.')
+                raise ValueError(f'Aggregation strategy {self.hparams["aggregation_strategy"]} '
+                                 'is not supported.')
+
+        if 'time' in self.hparams['aggregation_strategy'] and self.hparams['segment_length'] > 0:
+            x = self.segment_timeseries(x)
 
         self.full_data = TensorDataset(x)
 
         # split subjects into train, val and test
-        if self.test_ratio is not None:
+        if self.hparams['test_ratio'] is not None:
             train_idx, test_idx = train_test_split(
-                torch.arange(x.shape[0]), test_size=self.test_ratio, shuffle=self.shuffle)
+                torch.arange(x.shape[0]), test_size=self.hparams['test_ratio'],
+                shuffle=self.hparams['shuffle'])
 
             self.train = torch.utils.data.Subset(self.full_data, train_idx)
             self.test = torch.utils.data.Subset(self.full_data, test_idx)
+
             # TODO separate val dataset
             # concat val and train for final training (we only use train and test for now)
             # train_idx, val_idx = train_test_split(
@@ -227,17 +234,17 @@ class LEMONDataModule(pl.LightningDataModule):
             self.test = self.full_data
 
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size,
-                          num_workers=self.num_workers,
+        return DataLoader(self.train, batch_size=self.hparams['batch_size'],
+                          num_workers=self.hparams['num_workers'],
                           persistent_workers=True)
 
     def val_dataloader(self):
         # FIXME Note this is the same as the test dataloader (change to self.val for separate validation set)
-        return DataLoader(self.test, batch_size=self.batch_size,
-                          num_workers=self.num_workers,
+        return DataLoader(self.test, batch_size=self.hparams['batch_size'],
+                          num_workers=self.hparams['num_workers'],
                           persistent_workers=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size,
-                          num_workers=self.num_workers,
+        return DataLoader(self.test, batch_size=self.hparams['batch_size'],
+                          num_workers=self.hparams['num_workers'],
                           persistent_workers=True)

@@ -1,4 +1,5 @@
 from typing import Literal
+import hashlib
 import torch
 from torch.nn import functional as F
 from torch import nn
@@ -32,7 +33,7 @@ class Classifier(pl.LightningModule):
 
 
 class MaskedModel(pl.LightningModule):
-    def __init__(self, n_regions, n_embeddings=2, segment_length=32):
+    def __init__(self, n_regions, n_embeddings=2):
         super().__init__()
 
         self.save_hyperparameters()
@@ -45,7 +46,7 @@ class MaskedModel(pl.LightningModule):
 
         # self.feature_extractor = MaskedVAE(segment_length, n_embeddings, mask_size=4)
         self.feature_extractor = Seq2SeqAE(n_regions, n_embeddings, mask_size=4)
-        self.cls_head = Classifier(n_embeddings)
+        self.cls_head = Classifier(n_inputs=n_embeddings)
 
     def forward(self, x):
         """_summary_
@@ -57,21 +58,10 @@ class MaskedModel(pl.LightningModule):
             y, h, loss_recon
         """
 
-        seg_len = self.hparams['segment_length']
-        n_features = self.hparams['n_regions']
-
-        x_segments = x.unfold(1, seg_len, seg_len)
-        x_segments = x_segments.reshape(-1, seg_len, n_features)
-        # x_segments = x_segments.permute(0, 2, 1)  # -> shape: (subjects * segments, regions, segment_length)
-        # x_segments = x_segments.contiguous().reshape(-1, self.segment_length)
-
-        h, x_segments_recon, loss_recon = self.feature_extractor(x_segments)
+        h, x_recon, loss_recon = self.feature_extractor(x)
 
         if self.phase == 'finetune':
             y = self.cls_head(h)
-            # TODO fix this, it's not working (e.g., move segmentation to the right place, etc.)
-            y = y.reshape(x.size(0), -1, 2)
-            y = y.mean(dim=1)
         else:
             y = None
 
@@ -81,8 +71,8 @@ class MaskedModel(pl.LightningModule):
         self.phase = phase
 
     def step(self, batch, batch_idx, label: Literal['train', 'val', 'test'] = 'train'):
-        x = batch[0]
 
+        x = batch[0]
         y_hat, h, loss_recon = self(x)
         loss = loss_recon
         self.log(f'loss_recon/{label}', loss_recon)
@@ -98,6 +88,13 @@ class MaskedModel(pl.LightningModule):
             self.log(f'accuracy/{label}', accuracy)
 
         return {'loss': loss}
+
+    def on_train_start(self):
+        # init custom hp metrics (default_hp_metric=False)
+        self.logger.log_hyperparams(self.hparams, {
+            'accuracy/val': .5,
+            'loss_recon/val': torch.inf,
+            'loss_cls/val': torch.inf})
 
     def training_step(self, batch, batch_idx):
         if self.phase == 'finetune':
@@ -124,24 +121,29 @@ class MaskedModel(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
 
-    def fit(self, datamodule, max_epochs=100,
+    def fit(self,
+            datamodule,
+            max_epochs=100,
             phase: Literal['pretrain', 'finetune', None] = None, **kwargs):
 
         self.set_phase(phase)
 
-        callbacks: list = [RichProgressBar(refresh_rate=5)]
+        callbacks: list = [RichProgressBar()]
+        run_name: str = 'S2SAE'
 
         match self.phase:
             case 'pretrain':
-                run_name = 'causal'
                 ckpt_path = 'last'
+                ckpt_id = hashlib.md5(str(self.hparams).encode()).hexdigest()[:6]
+                print(f'ckpt_id: {ckpt_id}')
                 callbacks.append(ModelCheckpoint(
-                    dirpath=f'models/checkpoints/{run_name}',
-                    filename='{epoch:02d}',
+                    dirpath=f'models/checkpoints/{run_name}_{ckpt_id}',
+                    filename=ckpt_id + '-{epoch}',
+                    monitor='loss_recon/val',
                     every_n_epochs=1,
                     save_last=True))
             case 'finetune':
-                run_name = 'causal_cls'
+                run_name += '_ft'
                 ckpt_path = None
             case _:
                 raise ValueError(f'Invalid phase ({self.phase}). Must be "finetune" or "pretrain".')
@@ -152,6 +154,7 @@ class MaskedModel(pl.LightningModule):
             # accumulate_grad_batches=5,
             #  gradient_clip_val=.5,
             logger=TensorBoardLogger('lightning_logs', name=run_name,
+                                     default_hp_metric=False,
                                      version=self.last_run_version),
             log_every_n_steps=1,
             callbacks=callbacks,
