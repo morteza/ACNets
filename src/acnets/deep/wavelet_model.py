@@ -6,8 +6,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import RichProgressBar, ModelCheckpoint
 import torchmetrics as metrics
-from .seq2seq import Seq2SeqAutoEncoder
-from .vae import VariationalAutoEncoder
 from .cvae import CVAE
 
 class Classifier(pl.LightningModule):

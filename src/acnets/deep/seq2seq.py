@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class Encoder(nn.Module):
@@ -26,8 +27,8 @@ class Decoder(nn.Module):
         return out
 
 
-class Seq2SeqAutoEncoder(nn.Module):
-    def __init__(self, input_size, n_embeddings):
+class Seq2SeqAE(nn.Module):
+    def __init__(self, input_size, n_embeddings, **kwargs):
         super().__init__()
         self.n_embeddings = n_embeddings
         self.encoder = Encoder(input_size, n_embeddings)
@@ -53,4 +54,6 @@ class Seq2SeqAutoEncoder(nn.Module):
         # decode
         x_recon = self.decoder(x_dec, h_dec, c_dec)
 
-        return h, x_recon
+        loss = F.mse_loss(x_recon, x)
+
+        return h, x_recon, loss

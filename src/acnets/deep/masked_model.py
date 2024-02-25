@@ -7,6 +7,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import RichProgressBar, ModelCheckpoint
 import torchmetrics as metrics
 from .mvae import MaskedVAE
+from .seq2seq import Seq2SeqAE
 
 
 class Classifier(pl.LightningModule):
@@ -43,7 +44,8 @@ class MaskedModel(pl.LightningModule):
 
         self.accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
 
-        self.feature_extractor = MaskedVAE(segment_length, n_embeddings, mask_size=4)
+        # self.feature_extractor = MaskedVAE(segment_length, n_embeddings, mask_size=4)
+        self.feature_extractor = Seq2SeqAE(n_regions, n_embeddings, mask_size=4)
         self.cls_head = Classifier(n_embeddings)
 
     def forward(self, x):
@@ -58,8 +60,8 @@ class MaskedModel(pl.LightningModule):
 
         x_segments = x.unfold(1, self.segment_length, self.segment_length)
         x_segments = x_segments.reshape(-1, self.segment_length, self.n_regions)
-        x_segments = x_segments.permute(0, 2, 1)  # -> shape: (subjects * segments, regions, segment_length)
-        x_segments = x_segments.contiguous().reshape(-1, self.segment_length)
+        # x_segments = x_segments.permute(0, 2, 1)  # -> shape: (subjects * segments, regions, segment_length)
+        # x_segments = x_segments.contiguous().reshape(-1, self.segment_length)
 
         h, x_segments_recon, loss_recon = self.feature_extractor(x_segments)
 
@@ -125,21 +127,20 @@ class MaskedModel(pl.LightningModule):
 
         self.set_phase(phase)
 
+        callbacks: list = [RichProgressBar(refresh_rate=5)]
+
         match self.phase:
             case 'pretrain':
                 run_name = 'causal'
                 ckpt_path = 'last'
-                callbacks = [RichProgressBar(),
-                             ModelCheckpoint(
-                                 dirpath=f'models/checkpoints/{run_name}',
-                                 filename='{epoch:02d}',
-                                 every_n_epochs=10,
-                                 every_n_train_steps=0,
-                                 save_last=True)]
+                callbacks.append(ModelCheckpoint(
+                    dirpath=f'models/checkpoints/{run_name}',
+                    filename='{epoch:02d}',
+                    every_n_epochs=1,
+                    save_last=True))
             case 'finetune':
                 run_name = 'causal_cls'
                 ckpt_path = None
-                callbacks = [RichProgressBar()]
             case _:
                 raise ValueError(f'Invalid phase ({self.phase}). Must be "finetune" or "pretrain".')
 

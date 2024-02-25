@@ -1,12 +1,12 @@
 import os
+from typing import Literal
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader, TensorDataset, ConcatDataset
+from torch.utils.data import DataLoader, TensorDataset
 
 from sklearn.preprocessing import LabelEncoder
 from ..pipeline import ConnectivityExtractor, TimeseriesAggregator, ConnectivityAggregator
 from sklearn.model_selection import train_test_split
-from src.acnets.parcellations.dosenbach import load_dosenbach2010_masker
 from src.acnets.parcellations import aal, dosenbach
 from pathlib import Path
 from joblib import Parallel, delayed
@@ -40,6 +40,9 @@ class LEMONDataModule(pl.LightningDataModule):
     def __init__(self,
                  atlas='dosenbach2010',
                  kind='partial correlation',
+                 aggregation_strategy: Literal[
+                     'time_regions', 'time_networks', 'time_wavelets',
+                     'conn_regions', 'cconn_networks', 'tconn_networks'] = 'time_regions',
                  dataset_path=Path('/mnt/Lifestream/MPI-LEMON/MRI_Preprocessed_Derivatives/'),
                  n_subjects=5,
                  test_ratio=.25,
@@ -52,6 +55,7 @@ class LEMONDataModule(pl.LightningDataModule):
         super().__init__()
         self.atlas = atlas
         self.kind = kind
+        self.aggregation_strategy = aggregation_strategy
         self.dataset_path = dataset_path
         self.n_subjects = n_subjects
         self.test_ratio = test_ratio
@@ -173,43 +177,40 @@ class LEMONDataModule(pl.LightningDataModule):
             print(f'no dataset file found, preparing {self.n_subjects} timeseries')
             self.prepare_data()
 
-        xs = []  # list of Xs
-
         # time-series (index = 0)
         x_time_regions = self.get_timeseries(self.timeseries_dataset_path, self.n_subjects)
-        xs.append(torch.Tensor(x_time_regions['timeseries'].values))
 
-        # connectivity (index = 1)
-        x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
-        xs.append(torch.Tensor(x_conn_regions['connectivity'].values))
+        match self.aggregation_strategy:
+            case 'time_regions':
+                x = torch.Tensor(x_time_regions['timeseries'].values)
+            case 'conn_regions':
+                x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+                x = torch.Tensor(x_conn_regions['connectivity'].values)
+            case 'time_wavelets':
+                x_time_wavelets = TimeseriesAggregator(
+                    strategy='wavelet', wavelet_name='db1').fit_transform(x_time_regions)
+                x = torch.Tensor(x_time_wavelets['wavelets'].values)
+            case 'time_networks' if 'network' in x_time_regions.dims:
+                x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
+                x = torch.Tensor(x_time_networks['timeseries'].values)
+            case 'tconn_networks' if 'network' in x_time_regions.dims:
+                x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
+                x = torch.Tensor(x_time_networks['timeseries'].values)
+                x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
+                x = torch.Tensor(x_tconn_networks['connectivity'].values)
+            case 'cconn_networks' if 'network' in x_time_regions.dims:
+                x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
+                x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
+                x = torch.Tensor(x_cconn_networks['connectivity'].values)
+            case _:
+                raise ValueError(f'Aggregation strategy {self.aggregation_strategy} is not supported.')
 
-        # wavelets (index = 2)
-        x_time_wavelets = TimeseriesAggregator(strategy='wavelet',
-                                               wavelet_name='db1',
-                                               # wavelet_coef_dim=100
-                                               ).fit_transform(x_time_regions)
-        xs.append(torch.Tensor(x_time_wavelets['wavelets'].values))
+        self.full_data = TensorDataset(x)
 
-        # network-level time-series, ts-based connectivity, and conn-based connectivity
-        if 'network' in dataset.dims:
-            #  (index = 3)
-            x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
-            xs.append(torch.Tensor(x_time_networks['timeseries'].values))
-            # (index = 4)
-            x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
-            xs.append(torch.Tensor(x_tconn_networks['connectivity'].values))
-            # (index = 5)
-            x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
-            xs.append(torch.Tensor(x_cconn_networks['connectivity'].values))
-
-        self.full_data = TensorDataset(*xs)
-
-        # split into train, val and test
-        n_subjects = xs[0].shape[0]
-
+        # split subjects into train, val and test
         if self.test_ratio is not None:
             train_idx, test_idx = train_test_split(
-                torch.arange(n_subjects), test_size=self.test_ratio, shuffle=self.shuffle)
+                torch.arange(x.shape[0]), test_size=self.test_ratio, shuffle=self.shuffle)
 
             self.train = torch.utils.data.Subset(self.full_data, train_idx)
             self.test = torch.utils.data.Subset(self.full_data, test_idx)
