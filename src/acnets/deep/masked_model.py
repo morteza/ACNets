@@ -92,7 +92,7 @@ class MaskedModel(pl.LightningModule):
     def on_train_start(self):
         # init custom hp metrics (default_hp_metric=False)
         self.logger.log_hyperparams(self.hparams, {
-            'accuracy/val': .5,
+            'accuracy/val': torch.inf,
             'loss_recon/val': torch.inf,
             'loss_cls/val': torch.inf})
 
@@ -128,7 +128,7 @@ class MaskedModel(pl.LightningModule):
 
         self.set_phase(phase)
 
-        callbacks: list = [RichProgressBar()]
+        callbacks: list = []  # [RichProgressBar()]
         run_name: str = 'S2SAE'
 
         match self.phase:
@@ -137,7 +137,7 @@ class MaskedModel(pl.LightningModule):
                 ckpt_id = hashlib.md5(str(self.hparams).encode()).hexdigest()[:6]
                 print(f'ckpt_id: {ckpt_id}')
                 callbacks.append(ModelCheckpoint(
-                    dirpath=f'models/checkpoints/{run_name}_{ckpt_id}',
+                    dirpath=f'checkpoints/{run_name}_{ckpt_id}',
                     filename=ckpt_id + '-{epoch}',
                     monitor='loss_recon/val',
                     every_n_epochs=1,
@@ -153,6 +153,7 @@ class MaskedModel(pl.LightningModule):
             max_epochs=max_epochs,
             # accumulate_grad_batches=5,
             #  gradient_clip_val=.5,
+            enable_progress_bar=False,
             logger=TensorBoardLogger('lightning_logs', name=run_name,
                                      default_hp_metric=False,
                                      version=self.last_run_version),

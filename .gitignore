@@ -162,9 +162,9 @@ tmp/
 
 # DVC-managed folders
 /data
-/data2
 /models
 /outputs
 *.bkp
 lightning_logs/
 .~lock.*
+/checkpoints
