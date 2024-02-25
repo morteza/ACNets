@@ -141,9 +141,8 @@ class Julia2018DataModule(pl.LightningDataModule):
         self.full_data = TensorDataset(x, y)
 
         # stratified split into train, val and test
-        n_subjects = len(y)
         train_idx, test_idx = train_test_split(
-            torch.arange(n_subjects),
+            torch.arange(len(y)),
             test_size=self.hparams['test_ratio'], stratify=y, shuffle=self.hparams['shuffle'])
 
         self.train = torch.utils.data.Subset(self.full_data, train_idx)
