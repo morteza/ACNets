@@ -109,15 +109,15 @@ class Julia2018DataModule(pl.LightningDataModule):
                 x_time_wavelets = TimeseriesAggregator(
                     strategy='wavelet', wavelet_name='db1').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_wavelets['wavelets'].values)
-            case 'time_networks' if 'network' in x_time_regions.dims:
+            case 'time_networks' if 'network' in x_time_regions.data_vars.keys():
                 x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_networks['timeseries'].values)
-            case 'tconn_networks' if 'network' in x_time_regions.dims:
+            case 'tconn_networks' if 'network' in x_time_regions.data_vars.keys():
                 x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_networks['timeseries'].values)
                 x_tconn_networks = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_networks)
                 x = torch.Tensor(x_tconn_networks['connectivity'].values)
-            case 'cconn_networks' if 'network' in x_time_regions.dims:
+            case 'cconn_networks' if 'network' in x_time_regions.data_vars.keys():
                 x_conn_regions = ConnectivityExtractor(kind=self.kind).fit_transform(x_time_regions)
                 x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
                 x = torch.Tensor(x_cconn_networks['connectivity'].values)
