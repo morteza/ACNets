@@ -9,11 +9,11 @@ class Encoder(pl.LightningModule):
         super().__init__()
 
         self.encode = nn.Sequential(
-            nn.Linear(n_inputs, n_inputs * 2),
+            nn.Linear(n_inputs, n_inputs // 2),
             nn.ReLU(),
-            nn.Linear(n_inputs * 2, n_inputs * 4),
+            nn.Linear(n_inputs // 2, n_inputs // 4),
             nn.ReLU(),
-            nn.Linear(n_inputs * 4, n_ouputs),
+            nn.Linear(n_inputs // 4, n_ouputs),
         )
 
     def forward(self, x):
@@ -25,11 +25,11 @@ class Decoder(pl.LightningModule):
     def __init__(self, n_inputs, n_ouputs):
         super().__init__()
         self.decode = nn.Sequential(
-            nn.Linear(n_inputs, n_inputs // 2),
+            nn.Linear(n_inputs, n_inputs * 2),
             nn.ReLU(),
-            nn.Linear(n_inputs // 2, n_inputs // 4),
+            nn.Linear(n_inputs * 2, n_inputs * 4),
             nn.ReLU(),
-            nn.Linear(n_inputs // 4, n_ouputs),
+            nn.Linear(n_inputs * 4, n_ouputs),
         )
 
     def forward(self, x):

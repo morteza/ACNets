@@ -3,7 +3,7 @@ from torch.nn import functional as F
 from torch import nn
 import pytorch_lightning as pl
 import torchmetrics as metrics
-from .vae import VariationalAutoEncoder
+from .vae import VAE
 
 
 class MultiHeadModel(pl.LightningModule):
@@ -25,7 +25,7 @@ class MultiHeadModel(pl.LightningModule):
         # X2 (region-level connectivity)
         # self.x2_head = nn.Sequential(
         #     nn.Flatten(start_dim=1),
-        #     VariationalAutoEncoder(n_regions * n_regions, n_embeddings)
+        #     VAE(n_regions * n_regions, n_embeddings)
         # )
 
         # X3 (network-level timeseries)
@@ -37,13 +37,13 @@ class MultiHeadModel(pl.LightningModule):
         # X4 (network-level connectivity)
         self.x4_head = nn.Sequential(
             # nn.Flatten(start_dim=1),
-            VariationalAutoEncoder(n_networks * (n_networks - 1) // 2, n_embeddings)
+            VAE(n_networks * (n_networks - 1) // 2, n_embeddings)
         )
 
         # X5 (averaged network-level connectivity)
         self.x5_head = nn.Sequential(
             # nn.Flatten(start_dim=1),
-            VariationalAutoEncoder(n_networks * (n_networks + 1) // 2, n_embeddings)
+            VAE(n_networks * (n_networks + 1) // 2, n_embeddings)
         )
 
         self.cls_head = nn.Sequential(

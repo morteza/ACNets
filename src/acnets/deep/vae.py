@@ -33,7 +33,7 @@ class Decoder(nn.Module):
         return out
 
 
-class VariationalAutoEncoder(nn.Module):
+class VAE(nn.Module):
     def __init__(self, input_size, n_embeddings):
         super().__init__()
         self.n_embeddings = n_embeddings

@@ -22,7 +22,10 @@ class FineTunable(pl.LightningModule):
         return self._phase
 
     @phase.setter
-    def phase(self, phase):
+    def phase(self, phase: Literal['pretrain', 'finetune']):
+        if phase not in ['pretrain', 'finetune']:
+            raise ValueError(f'Invalid phase ({phase}). '
+                             'Must be `finetune` or `pretrain`.')
         self._phase = phase
 
     def step(self, batch, batch_idx, label: Literal['train', 'val', 'test'] = 'train'):
@@ -52,18 +55,10 @@ class FineTunable(pl.LightningModule):
             'loss_cls/val': torch.inf})
 
     def training_step(self, batch, batch_idx):
-        if self.phase == 'finetune':
-            self.unfreeze()
-            # self.cls_head.unfreeze()
-            # self.feature_extractor.decoder.freeze()
-            # self.feature_extractor.freeze()
-            return self.step(batch, batch_idx, label='train')
-        elif self.phase == 'pretrain':
-            self.unfreeze()
+        self.unfreeze()
+        if self.phase == 'pretrain':
             self.cls_head.freeze()
-            return self.step(batch, batch_idx, label='train')
-        else:
-            raise ValueError(f'Invalid phase ({self.phase}). Must be "finetune" or "pretrain".')
+        return self.step(batch, batch_idx, label='train')
 
     def validation_step(self, batch, batch_idx):
         self.freeze()
@@ -82,7 +77,10 @@ class FineTunable(pl.LightningModule):
             phase: Literal['pretrain', 'finetune', None] = None, **kwargs):
 
         callbacks: list = []  # [RichProgressBar()]
-        run_name = self.model_name if hasattr(self, 'model_name') else self.__class__.__name__
+        run_name = (
+            self.model_name
+            if hasattr(self, 'model_name')
+            else self.__class__.__name__)
 
         match phase:
             case 'pretrain':
@@ -106,8 +104,8 @@ class FineTunable(pl.LightningModule):
         trainer = pl.Trainer(
             accelerator='auto',
             max_epochs=max_epochs,
-            # accumulate_grad_batches=5,
-            #  gradient_clip_val=.5,
+            accumulate_grad_batches=5,
+             gradient_clip_val=.5,
             enable_progress_bar=False,
             logger=TensorBoardLogger('lightning_logs', name=run_name,
                                      default_hp_metric=False,
