@@ -7,3 +7,4 @@ notebooks/
 *.pyc
 .ipynb_checkpoints
 .~lock.*
+models/checkpoints/
