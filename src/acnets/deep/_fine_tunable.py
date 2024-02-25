@@ -8,9 +8,14 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 class FineTunable(pl.LightningModule):
+    """Base class for fine-tunable models.
+
+    Raises:
+        ValueError: when phase is not `finetune` or `pretrain`.
+    """
 
     _phase: Literal['pretrain', 'finetune', None] = None
-    last_run_version: str | None = None
+    _last_run_version: str | None = None  # keep track of the last pretrained model version
 
     @property
     def phase(self):
@@ -76,13 +81,10 @@ class FineTunable(pl.LightningModule):
             max_epochs=100,
             phase: Literal['pretrain', 'finetune', None] = None, **kwargs):
 
-        self.phase = phase
-
         callbacks: list = []  # [RichProgressBar()]
-
         run_name = self.model_name if hasattr(self, 'model_name') else self.__class__.__name__
 
-        match self.phase:
+        match phase:
             case 'pretrain':
                 ckpt_path = 'last'
                 ckpt_id = hashlib.md5(str(self.hparams).encode()).hexdigest()[:6]
@@ -97,7 +99,9 @@ class FineTunable(pl.LightningModule):
                 run_name = f'{run_name}_ft'
                 ckpt_path = None
             case _:
-                raise ValueError(f'Invalid phase ({self.phase}). Must be "finetune" or "pretrain".')
+                raise ValueError(f'Invalid phase ({phase}). Must be "finetune" or "pretrain".')
+
+        self.phase = phase
 
         trainer = pl.Trainer(
             accelerator='auto',
@@ -107,12 +111,13 @@ class FineTunable(pl.LightningModule):
             enable_progress_bar=False,
             logger=TensorBoardLogger('lightning_logs', name=run_name,
                                      default_hp_metric=False,
-                                     version=self.last_run_version),
+                                     version=self._last_run_version),
             log_every_n_steps=1,
             callbacks=callbacks,
             **kwargs)
 
-        self.last_run_version = 'version_{}'.format(trainer.logger.version) if trainer.logger else None
+        if phase == 'pretrain' and trainer.logger:
+            self._last_run_version = 'version_{}'.format(trainer.logger.version)
 
         trainer.fit(self, datamodule=datamodule, ckpt_path=ckpt_path)
 
