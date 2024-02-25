@@ -1,4 +1,3 @@
-from typing import Literal
 from torch import nn
 import pytorch_lightning as pl
 import torchmetrics as metrics
@@ -31,13 +30,7 @@ class WaveletModel(pl.LightningModule):
     def __init__(self, n_regions, n_wavelets=124, n_embeddings=2, segment_length=32):
         super().__init__()
 
-        self.n_regions = n_regions
-        self.n_embeddings = n_embeddings
-        self.n_wavelets = n_wavelets
-        self.segment_length = segment_length
-        self.phase: Literal['pretrain', 'finetune', None] = None
-
-        self.last_run_version = None
+        self.save_hyperparameters()
 
         self.accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
 

@@ -9,8 +9,16 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 class FineTunable(pl.LightningModule):
 
-    def set_phase(self, phase):
-        self.phase = phase
+    _phase: Literal['pretrain', 'finetune', None] = None
+    last_run_version: str | None = None
+
+    @property
+    def phase(self):
+        return self._phase
+
+    @phase.setter
+    def phase(self, phase):
+        self._phase = phase
 
     def step(self, batch, batch_idx, label: Literal['train', 'val', 'test'] = 'train'):
 
@@ -68,7 +76,7 @@ class FineTunable(pl.LightningModule):
             max_epochs=100,
             phase: Literal['pretrain', 'finetune', None] = None, **kwargs):
 
-        self.set_phase(phase)
+        self.phase = phase
 
         callbacks: list = []  # [RichProgressBar()]
 

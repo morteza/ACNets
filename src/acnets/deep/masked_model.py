@@ -1,11 +1,6 @@
 from ._fine_tunable import FineTunable
-from typing import Literal
-import torch
-from torch.nn import functional as F
 from torch import nn
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import RichProgressBar, ModelCheckpoint
 import torchmetrics as metrics
 from .mvae import MaskedVAE
 from .seq2seq import Seq2SeqAE
@@ -37,10 +32,6 @@ class MaskedModel(FineTunable):
         super().__init__()
 
         self.save_hyperparameters()
-
-        self.phase: Literal['pretrain', 'finetune', None] = None
-
-        self.last_run_version = None
 
         self.accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
 
