@@ -90,7 +90,7 @@ class FineTunable(pl.LightningModule):
                 callbacks.append(ModelCheckpoint(
                     dirpath=f'checkpoints/{run_name}_{ckpt_id}',
                     filename=ckpt_id + '-{epoch}',
-                    monitor='loss_recon/val',
+                    # monitor='loss_recon/val',
                     every_n_epochs=1,
                     save_last=True))
             case 'finetune':
