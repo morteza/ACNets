@@ -104,8 +104,8 @@ class FineTunable(pl.LightningModule):
         trainer = pl.Trainer(
             accelerator='auto',
             max_epochs=max_epochs,
-            accumulate_grad_batches=5,
-             gradient_clip_val=.5,
+            # accumulate_grad_batches=5,
+            #  gradient_clip_val=.5,
             enable_progress_bar=False,
             logger=TensorBoardLogger('lightning_logs', name=run_name,
                                      default_hp_metric=False,
