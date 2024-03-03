@@ -260,7 +260,11 @@ class MultiScaleClassifier(Pipeline):
             feature_selector = SelectFromModel(self.classifier, threshold=-np.inf, max_features=30)
 
         steps = [
-            ('parcellation', Parcellation(atlas_name=self.atlas)),
+            ('parcellation', Parcellation(
+                atlas_name=self.atlas,
+                bids_dir='/Users/morteza/workspace/ACNets/data/julia2018/',
+                cache_dir='/Users/morteza/workspace/ACNets/data/julia2018/derivatives/resting_timeseries/',
+                )),
             ('extract_features', FeatureUnion(feature_extractors)),
             ('scale', StandardScaler()),
             ('zerovar', VarianceThreshold()),
