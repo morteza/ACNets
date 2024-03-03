@@ -54,6 +54,8 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
         .groupby('network_dst').mean('region_dst', skipna=True)
     )
 
+    self._feature_names = new_dataset['connectivity'].network_src.values
+
     # TODO extract feature names
 
     return new_dataset
@@ -62,6 +64,6 @@ class ConnectivityAggregator(TransformerMixin, BaseEstimator):
     if self.strategy is None:
       return input_features
     elif 'network' in self.strategy:
-      return self.feature_name_
+      return self._feature_names
 
     return None

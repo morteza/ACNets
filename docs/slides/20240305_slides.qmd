@@ -14,26 +14,27 @@ Hello we uh. want to understand the relationship between the brain function and 
 - Highlight the case study: action video gamers vs. non-gamers.
 :::
 
-## Hypothesis 1: standard GLM-based approaches methods
+## Recipe 1: standard approach
 
 ::: {.notes}
-So the standard method is using something like glm, linear models, T tests and all these statistics methods, methods from statistics. What we. do in this category of methods is action video yammer versus non gamers differ in the brain. And Suffer from spurious finding oversimplification tea leaves and subjectivity. The way we do it is that we figure out some regions or networks And we then do some calculus and if the difference between groups are. significantly different from chance than the feature that we used to study is considered significant or the main difference between groups.
+So the standard method is using something like glm, linear models, T-tests and all these  methods from statistics. What we do in this category of methods is that we rely on previous literature to identify cognitive constructs that action video and non gamers differ and then test for relevant regions and networks.The way we do it is that we figure out some regions or networks And we then do some calculation and if the difference between groups are significantly higher from chance than the feature/region/network is considered important for the main difference between groups.
+
+These methods are pretty informative if considered as providing a starting point for further investigation. However, they may also suffer one important thing:
+- feature importance is taken for granted as it comes from previous literature or it's combined with significance testing. So anything that is better than chance is considered important, an we might not be able to generalize to unseen data. This makes it pruned to  subjectivity and spurious findings. The method is also limited in terms of generalization to unseen data.
+
 :::
 
-### Challenges
-- feature importance is either given or based on significance testing.
-- prone to spurious findings, oversimplification, and subjectivity.
-- limited ability to generalize to unseen data.
+## Hypothesis 2: ML (Accuracy vs. Interpretability)
+
+::: {.notes}
+
+How can we improve that?
 
 - Machine learning:
 - Difficulty in interpreting results due to lack of semantic and context of the brain regions.
 - Inconsistency in achieving high classification accuracy.
 
 
-
-## Hypothesis 2: ML (Accuracy vs. Interpretability)
-
-::: {.notes}
 The second method is using like machine learning, like cross validation, those kind of things. And we want here to find a robust method that allows us to predict out of sample Um subjects like for example, can be generalized the results to the subjects that we don't see. Like here, we can try different methods like different. preprocessing different connectivity measures different machine learning. The problem Uh that here I wanted to mail the address is that like we want to We want semantic and context And because of that, maybe it's better to study networks, because that's the part of the brain. That's the function of the brain that We can usually understand like I will like. I will cite here the paper by pull track that. the reverse imprints that What we did in the previous like in this study was that I ran a classification accuracy classification task on the data set that we had, and then performed feature importance So like the results are a bit inconsistent. Like, for example, like we can see that the model that produces high accuracy here is the combining connectivity metrics based on networks. It produces 75% of accuracy And this is the only result I've seen like I'm quoting Tolstoy here. So the first hypothesis is that, like for interpretation of the results First, the strategy to achieve the high classification accuracy because the model here the inconsistency could be because The inconsistency here could be because All the models that we have here The results show the inconsistency and this could be the first hypothesis is that it could be because the accuracy is done that high So can we reach higher accuracy? This mainly involve feature engineering at the as the like the SVM changing the classification, changing the features that raw features we are using. And all these inconsistency could be because we are not reaching like a lower band of accuracy for reliable results. This is the first hypothesis. What happened is that like when I try to reach accuracy, this is 75% Uh, I couldn't see any reliable results because if we change the. Classic. If we feed all the features, if we like do different things, there's also. not reliable anyway. Depends on the different metallogic choices that we have.
 :::
 

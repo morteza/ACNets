@@ -64,7 +64,7 @@ class ExtractH1Features(TransformerMixin, BaseEstimator):
 
 
 class ExtractH2Features(TransformerMixin, BaseEstimator):
-    """Extract within-network connectivity features (H2).
+    """CAgg within/between-network connectivity features (H2).
 
     Inputs
     ------
@@ -127,7 +127,7 @@ class ExtractH2Features(TransformerMixin, BaseEstimator):
 
 
 class ExtractH3Features(TransformerMixin, BaseEstimator):
-    """Extract between-network connectivity features (H3).
+    """Extract TAgg network connectivity features (H3).
 
     Inputs
     ------
