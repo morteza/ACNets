@@ -28,17 +28,16 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
   def __init__(self,
                atlas_name='cort-maxprob-thr25-2mm',
-               bids_dir='data/julia2018',
+               bids_dir=Path('data/julia2018'),
                denoise_strategy='simple',
                fmriprep_bids_space='MNI152NLin2009cAsym',
-               cache_dir='derivatives/resting_timeseries/',
                normalize=False,
                verbose=0) -> None:
 
     self.atlas_name = atlas_name
     self.bids_dir = Path(bids_dir).expanduser()
     self.denoise_strategy = denoise_strategy
-    self.cache_dir = (self.bids_dir / cache_dir).expanduser()
+    self.cache_dir = self.bids_dir.expanduser() / 'derivatives/resting_timeseries/'
     self.normalize = normalize
     self.verbose = verbose
 

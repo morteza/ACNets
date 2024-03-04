@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from os import PathLike
 from typing import Iterable, Literal
 
+from pathlib import Path
 import numpy as np
 from numpy import ndarray
 import pandas as pd
@@ -262,9 +263,7 @@ class MultiScaleClassifier(Pipeline):
         steps = [
             ('parcellation', Parcellation(
                 atlas_name=self.atlas,
-                bids_dir='/Users/morteza/workspace/ACNets/data/julia2018/',
-                cache_dir='/Users/morteza/workspace/ACNets/data/julia2018/derivatives/resting_timeseries/',
-                )),
+                bids_dir=Path('~/workspace/ACNets/data/julia2018/').expanduser())),
             ('extract_features', FeatureUnion(feature_extractors)),
             ('scale', StandardScaler()),
             ('zerovar', VarianceThreshold()),
