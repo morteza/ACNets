@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from os import PathLike
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
@@ -48,7 +48,7 @@ class ConnectivityPipeline(TransformerMixin, BaseEstimator):
     connectivity_aggregation: Literal[None, 'network', 'random_network'] = None
 
     #  if you are using Ray Tune, set these params to absolute paths.
-    bids_dir: PathLike = 'data/julia2018'
+    bids_dir: Path = Path('data/julia2018')
 
     def fit(self, X, y=None, **fit_params):
         return self
