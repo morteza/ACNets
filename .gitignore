@@ -139,31 +139,12 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# R
-.Rhistory
-.Rproj.user
-
-# VS Code
-# .vscode/
-
-# Test/QC/etc reports
-outputs/reports/
-outputs/model_comparison/
-outputs/*.nc
-outputs/glm_reports/
-
-
-
-# Nilearn cache
-nilearn_cache/
-
 # temp
 tmp/
 
 # DVC-managed folders
 /data
 /models
-/outputs
 *.bkp
 lightning_logs/
 .~lock.*
