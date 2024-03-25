@@ -1,0 +1,6 @@
+outs:
+- md5: d07c2432fe9e8ec4dd09bb6bee959a05.dir
+  size: 10411648
+  nfiles: 2
+  hash: md5
+  path: Julia2018
