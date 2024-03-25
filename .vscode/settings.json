@@ -1,0 +1,27 @@
+{
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+"jupyter.notebookFileRoot": "${workspaceFolder}",
+"cSpell.words": [
+  "acnets",
+  "AVGP",
+  "binarization",
+  "binarize",
+  "connectome",
+  "denoising",
+  "detrend",
+  "difumo",
+  "dosenbach",
+  "Nifti",
+  "pybids",
+  "Seitzman",
+  "SHAP",
+  "thresholded",
+  "triu",
+  "vectorize",
+  "Vectorizer",
+  "xarray",
+  "timeseries"
+],
+"python.analysis.typeCheckingMode": "basic"
+}

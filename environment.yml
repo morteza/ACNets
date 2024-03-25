@@ -1,0 +1,46 @@
+# This file may be used to create an environment using:
+# $ mamba env create -f environment.yml
+
+name: acnets
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+
+dependencies:
+
+  # GENERAL
+  - python
+  - pip
+  - ipykernel
+  - ipywidgets
+  - flake8
+  
+  # DOC
+  - quarto
+  - quartodoc
+
+  # TEST
+  - pytest
+  - pytest-cov
+  - pytest-mpl
+
+  # DATA
+  - dvc
+  - dvc-ssh
+  - pandas
+  - xarray
+  - netcdf4
+  - h5netcdf
+
+  # VISUALIZATION
+  - matplotlib
+  - seaborn
+
+  # ML
+  - scikit-learn
+  
+  # deep learning
+  - pytorch
+  - tensorboard
+  - keras>3
