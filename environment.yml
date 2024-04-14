@@ -1,7 +1,7 @@
 # This file may be used to create an environment using:
 # $ mamba env create -f environment.yml
 
-name: acnets
+name: multimodal
 channels:
   - pytorch
   - nvidia
@@ -39,8 +39,11 @@ dependencies:
 
   # ML
   - scikit-learn
+  - tsfresh
   
   # deep learning
   - pytorch
   - tensorboard
-  - keras>3
+
+  - pip:
+     - keras
