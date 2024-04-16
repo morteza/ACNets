@@ -145,3 +145,4 @@ tmp/
 # DVC-managed folders
 *.bkp
 .~lock.*
+octave-workspace

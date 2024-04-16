@@ -1,7 +1,7 @@
 from sklearn.base import TransformerMixin, BaseEstimator
 import numpy as np
-import pandas as pd
-from typing import Literal, Callable
+import xarray as xr
+from typing import Literal
 
 
 class TimeseriesAggregator(TransformerMixin, BaseEstimator):
@@ -25,14 +25,15 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
 
     return self
 
-  def transform(self, dataset):
+  def transform(self, dataset) -> xr.Dataset:
+
+    new_dataset = dataset.copy()
 
     if self.strategy is None:
-      return dataset.copy()
+      return new_dataset
 
     if self.strategy == 'wavelet':
       import pywt
-      new_dataset = dataset.copy()
       ts = dataset['timeseries'].transpose('subject', 'region', 'timepoint')
       coefs = pywt.wavedec(ts, wavelet=self._wavelet_name)
       coefs_image = np.concatenate(coefs, axis=2)
@@ -43,7 +44,6 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
 
     # if strategy is 'network' or 'random_network'
 
-    new_dataset = dataset.copy()
     new_dataset = new_dataset.set_coords('network')
 
     if self.strategy == 'random_network':
@@ -57,6 +57,12 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
     new_dataset['timeseries'] = network_timeseries
 
     return new_dataset
+
+  def fit_transform(self, X: xr.Dataset, y=None, **fit_params) -> xr.Dataset:
+    if y is None:
+        return self.fit(X, **fit_params).transform(X)
+    else:
+        return self.fit(X, y, **fit_params).transform(X)
 
   def get_feature_names_out(self, input_features=None):
     if self.strategy is None:
