@@ -13,15 +13,16 @@
   "difumo",
   "dosenbach",
   "Nifti",
+  "procnames",
   "pybids",
   "Seitzman",
   "SHAP",
   "thresholded",
+  "timeseries",
   "triu",
   "vectorize",
   "Vectorizer",
-  "xarray",
-  "timeseries"
+  "xarray"
 ],
 "python.analysis.typeCheckingMode": "basic"
 }

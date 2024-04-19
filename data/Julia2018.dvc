@@ -1,6 +1,6 @@
 outs:
-- md5: 97c6963bc1df2f8305a861871e355390.dir
-  size: 42972396
-  nfiles: 4
+- md5: c046cfe77080cc90b576b0b21dfc6717.dir
+  size: 12655806
+  nfiles: 3
   hash: md5
   path: Julia2018
