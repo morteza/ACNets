@@ -39,7 +39,7 @@ dependencies:
 
   # ML
   - scikit-learn
-  - tsfresh
+  # - tsfresh
   
   # deep learning
   - pytorch
