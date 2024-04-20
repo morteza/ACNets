@@ -44,4 +44,5 @@ dependencies:
   # deep learning
   - pytorch
   - tensorboard
-  - keras>3
+  - pip:
+    - keras>3
