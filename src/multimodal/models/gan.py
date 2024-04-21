@@ -26,20 +26,22 @@ class GAN(keras.Model):
             layers.Dense(1, activation='sigmoid')
         ], name='discriminator')
 
+        self.additional_metrics = []
         self.built = True
 
     @property
     def metrics(self):
         return [self.d_loss_tracker, self.g_loss_tracker]
 
-    def compile(self, d_optimizer, g_optimizer, loss_fn):
-        super().compile()
+    def compile(self, loss, d_optimizer, g_optimizer, metrics):
+        super().compile(loss=loss)
+        self.loss_fn = loss
         self.d_optimizer = d_optimizer
         self.g_optimizer = g_optimizer
-        self.loss_fn = loss_fn
+        # self.additional_metrics = metrics
 
-    def call(self, data):
-        return self.discriminator(data)
+    def call(self, x):
+        return self.discriminator(x)
 
     def train_step(self, real_data):
         (x_real, y_real) = real_data
