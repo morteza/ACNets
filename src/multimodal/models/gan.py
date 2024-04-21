@@ -12,6 +12,7 @@ class GAN(keras.Model):
         self.latent_dim = latent_dim
         self.d_loss_tracker = keras.metrics.Mean(name='d_loss')
         self.g_loss_tracker = keras.metrics.Mean(name='g_loss')
+        self.accuracy_tracker = keras.metrics.BinaryAccuracy(name='accuracy')
         self.seed_generator = keras.random.SeedGenerator(42)
 
         self.generator = keras.Sequential([
@@ -26,14 +27,14 @@ class GAN(keras.Model):
             layers.Dense(1, activation='sigmoid')
         ], name='discriminator')
 
-        self.additional_metrics = []
         self.built = True
 
     @property
     def metrics(self):
-        return [self.d_loss_tracker, self.g_loss_tracker]
+        return [self.d_loss_tracker, self.g_loss_tracker,
+                self.accuracy_tracker]
 
-    def compile(self, loss, d_optimizer, g_optimizer, metrics):
+    def compile(self, loss, d_optimizer, g_optimizer):
         super().compile(loss=loss)
         self.loss_fn = loss
         self.d_optimizer = d_optimizer
@@ -54,7 +55,7 @@ class GAN(keras.Model):
         x_fake = self.generator(noise)
         x = ops.concatenate([x_real, x_fake], axis=0)
 
-        # 0=real, 1=fake
+        # 1=real, 0=fake
         y = ops.concatenate(
             [ops.ones((batch_size, 1)),
              ops.zeros((batch_size, 1))], axis=0
@@ -81,7 +82,7 @@ class GAN(keras.Model):
         self.zero_grad()
         y_pred = self.discriminator(self.generator(noise))
         g_loss = self.loss_fn(y_misleading, y_pred)
-        grads = g_loss.backward()  # FIXME move it below
+        g_loss.backward()  # FIXME move it below
         grads = [v.value.grad for v in self.generator.trainable_weights]
         with torch.no_grad():
             self.g_optimizer.apply(grads, self.generator.trainable_weights)
