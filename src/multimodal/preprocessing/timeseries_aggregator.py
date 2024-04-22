@@ -30,6 +30,7 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
     new_dataset = dataset.copy()
 
     if self.strategy is None:
+      new_dataset.attrs['timeseries_aggregation_strategy'] = 'region'
       return new_dataset
 
     if self.strategy == 'wavelet':
@@ -40,6 +41,9 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
       coefs_image = coefs_image[..., :self._wavelet_coef_dim]
       new_dataset['wavelets'] = (['subject', 'wavelet_dim', 'region'],
                                  coefs_image.transpose(0, 2, 1))  # subject, wavelet_dim, region
+
+      new_dataset.attrs['timeseries_aggregation_strategy'] = 'wavelet'
+
       return new_dataset
 
     # if strategy is 'network' or 'random_network'
@@ -47,14 +51,14 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
     new_dataset = new_dataset.set_coords('network')
 
     if self.strategy == 'random_network':
-      new_dataset['network'] = (['region'],
-                                np.random.permutation(new_dataset['network']))
+      new_dataset['network'] = (['region'], np.random.permutation(new_dataset['network']))
 
     # either 'network' or 'random_network'
     network_timeseries = new_dataset.groupby('network').mean(dim='region')['timeseries']
     network_timeseries = network_timeseries.transpose('subject', 'timepoint', 'network')
     new_dataset['region_timeseries'] = new_dataset['timeseries']
     new_dataset['timeseries'] = network_timeseries
+    new_dataset.attrs['timeseries_aggregation_strategy'] = 'network' if self.strategy == 'network' else 'random_network'
 
     return new_dataset
 

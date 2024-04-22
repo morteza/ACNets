@@ -39,7 +39,9 @@ dependencies:
 
   # ML
   - scikit-learn
-  # - tsfresh
+  # - tsfresh  # NOTE requires older deps
+  # - pyspi    # NOTE requires older deps
+  - nilearn
   
   # deep learning
   - pytorch

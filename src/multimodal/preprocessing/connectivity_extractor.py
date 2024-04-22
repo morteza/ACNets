@@ -34,6 +34,10 @@ class ConnectivityExtractor(TransformerMixin, BaseEstimator):
         ['subject', self.node_type + '_src', self.node_type + '_dst'],
         conn)
 
+    # just add the kind of connectivity as an attribute
+    new_dataset['connectivity'].attrs['kind'] = self.kind
+    new_dataset.attrs['connectivity_kind'] = self.kind
+
     return new_dataset
 
   def get_feature_names_out(self, input_features=None, sep=' \N{left right arrow} '):
