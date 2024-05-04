@@ -55,10 +55,10 @@ class GAN(keras.Model):
         x_fake = self.generator(noise)
         x = ops.concatenate([x_real, x_fake], axis=0)
 
-        # 1=real, 0=fake
+        # 0=real, 1=fake
         y = ops.concatenate(
-            [ops.ones((batch_size, 1)),
-             ops.zeros((batch_size, 1))], axis=0
+            [ops.zeros((batch_size, 1)),
+             ops.ones((batch_size, 1))], axis=0
         )
 
         # trick that adds noise to labels
@@ -77,12 +77,13 @@ class GAN(keras.Model):
         noise = keras.random.normal((batch_size, self.latent_dim),
                                     mean=0, stddev=1,
                                     seed=self.seed_generator)
-        y_misleading = ops.zeros((batch_size, 1))
+
+        y_misleading = ops.zeros((batch_size, 1))  # saying all are real (0)
 
         self.zero_grad()
         y_pred = self.discriminator(self.generator(noise))
         g_loss = self.loss_fn(y_misleading, y_pred)
-        g_loss.backward()  # FIXME move it below
+        g_loss.backward()
         grads = [v.value.grad for v in self.generator.trainable_weights]
         with torch.no_grad():
             self.g_optimizer.apply(grads, self.generator.trainable_weights)
