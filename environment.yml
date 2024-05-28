@@ -40,7 +40,6 @@ dependencies:
   # ML
   - scikit-learn
   # - tsfresh  # NOTE requires older deps
-  # - pyspi    # NOTE requires older deps
   - nilearn
   
   # deep learning
@@ -48,3 +47,4 @@ dependencies:
   - tensorboard
   - pip:
     - keras>3
+    - pyspi

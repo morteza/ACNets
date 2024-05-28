@@ -12,4 +12,5 @@ try:
     from .connectivity_extractor import ConnectivityExtractor
     __all__.append('ConnectivityExtractor')
 except ImportError:
+    raise ImportError('nilearn is required for ConnectivityExtractor')
     pass
