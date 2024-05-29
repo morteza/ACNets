@@ -64,7 +64,8 @@ class ConditionalGAN(keras.Model):
         self.latent_dim = latent_dim
         self.d_loss_tracker = keras.metrics.Mean(name='d_loss')
         self.g_loss_tracker = keras.metrics.Mean(name='g_loss')
-        self.accuracy_tracker = keras.metrics.SparseCategoricalAccuracy(name='accuracy')
+        self.combined_loss_tracker = keras.metrics.Mean(name='combined_loss')
+        self.accuracy = keras.metrics.SparseCategoricalAccuracy(name='accuracy')
         self.seed_generator = keras.random.SeedGenerator(42)
 
         self.generator = Generator(input_dim, latent_dim, n_classes)
@@ -73,15 +74,13 @@ class ConditionalGAN(keras.Model):
 
     @property
     def metrics(self):
-        return [self.d_loss_tracker, self.g_loss_tracker,
-                self.accuracy_tracker]
+        return [self.accuracy]
 
-    def compile(self, loss, d_optimizer, g_optimizer):
+    def compile(self, loss, g_optimizer, d_optimizer):
         super().compile(loss=loss)
         self.loss_fn = loss
-        self.d_optimizer = d_optimizer
-        self.g_optimizer = g_optimizer
-        # self.additional_metrics = metrics
+        self.d_optimizer=g_optimizer
+        self.g_optimizer=d_optimizer
 
     def call(self, x, training=False):
         pred = self.discriminator(x).argmax(axis=1)
@@ -125,7 +124,9 @@ class ConditionalGAN(keras.Model):
         # Update metrics and return their value.
         self.d_loss_tracker.update_state(d_loss)
         self.g_loss_tracker.update_state(g_loss)
+        self.combined_loss_tracker.update_state(d_loss + g_loss)
         return {
             'd_loss': self.d_loss_tracker.result(),
             'g_loss': self.g_loss_tracker.result(),
+            'combined_loss': self.combined_loss_tracker.result(),
         }
