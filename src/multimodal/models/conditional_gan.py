@@ -83,7 +83,7 @@ class ConditionalGAN(keras.Model):
         self.g_optimizer = g_optimizer
         # self.additional_metrics = metrics
 
-    def call(self, x, y):
+    def call(self, x):
         return self.discriminator(x).argmax(axis=1)
 
     def train_step(self, real_data):
