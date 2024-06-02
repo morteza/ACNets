@@ -1,4 +1,4 @@
-"""A simple CGAN implementation using Keras and PyTorch.
+"""A simple conditional GAN implementation using Keras and PyTorch.
 """
 
 import keras
@@ -83,11 +83,8 @@ class ConditionalGAN(keras.Model):
         self.g_optimizer=d_optimizer
 
     def call(self, x, training=False):
-        pred = self.discriminator(x).argmax(axis=1)
-        if training:
-            return pred  # 0=fake, 1..C=real
-        else:
-            return pred - 1  # 0..C-1=real
+        pred = self.discriminator(x)
+        return pred
 
     def train_step(self, real_data):
         (x_real, y_real) = real_data
