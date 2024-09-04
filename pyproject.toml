@@ -1,6 +1,6 @@
 [tool.pytest.ini_options]
 addopts = "-rP -q --capture=sys --log-level=INFO"
 testpaths = [
-    "src",
+    "tests", "src",
 ]
 python_files = "*_test.py"

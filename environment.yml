@@ -45,6 +45,7 @@ dependencies:
   # deep learning
   - pytorch
   - tensorboard
+  - keras
+
   - pip:
-    - keras>3
     - pyspi
