@@ -1,5 +1,8 @@
 [tool.pytest.ini_options]
 addopts = "-rP -q --capture=sys --log-level=INFO"
 testpaths = [
-    "tests",
+    "tests", "src",
 ]
+# main used test_*.py, the multimodal branch used *_test.py; accept both,
+# otherwise the multimodal setting silently hides the tests/ suite
+python_files = ["test_*.py", "*_test.py"]

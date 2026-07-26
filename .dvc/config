@@ -1,10 +1,13 @@
 [core]
     autostage = true
     analytics = false
-    remote = iris
-['remote "iris"']
-    url = ssh://iris-cluster/work/projects/acnets/datasets/acnets/dvc
+    remote = aion-cluster
+['remote "aion-cluster"']
+    url = ssh://aion-cluster/work/projects/acnets/datasets/acnets/dvc
     port = 8022
 ['remote "aion"']
     url = ssh://aion-cluster/work/projects/acnets/datasets/acnets/dvc
+    port = 8022
+['remote "iris"']
+    url = ssh://iris-cluster/work/projects/acnets/datasets/acnets/dvc
     port = 8022

@@ -16,7 +16,7 @@ dependencies:
   - ipywidgets
   - flake8
   - watermark
-  
+
   # DOC
   - quarto
   - quartodoc
@@ -45,6 +45,7 @@ dependencies:
   - py-xgboost
   - scikit-explain
   - ray-tune
+  # - tsfresh  # NOTE requires older deps
 
   # HPO
   # - ray-tune
@@ -54,7 +55,7 @@ dependencies:
   # fMRI
   - pybids
   - nilearn
-  
+
   # deep learning
   - pytorch
   # - pytorch-cuda=12.1  # optional on GPU systems
@@ -68,11 +69,13 @@ dependencies:
   # - heudiconv=0.8.0
   # - fmriprep-docker
 
-  # - pip:
+  - pip:
+    # pairwise interaction statistics; widens the connectivity axis
+    # of the multiverse beyond the Nilearn kinds (see docs/paper/)
+    - pyspi
     # - tune-sklearn
     # - umap-learn
     # - plotly
     # - fastcluster
     # - nipype
     # - visbrain
-

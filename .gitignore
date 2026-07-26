@@ -152,8 +152,6 @@ outputs/model_comparison/
 outputs/*.nc
 outputs/glm_reports/
 
-
-
 # Nilearn cache
 nilearn_cache/
 
@@ -161,10 +159,18 @@ nilearn_cache/
 tmp/
 
 # DVC-managed folders
-/data
+# data/ is tracked per-dataset (data/Julia2018.dvc, data/LEMON.dvc), so the
+# pointer files and README must stay visible to git. Do not replace this
+# block with a bare `/data` or the DVC pointers become invisible.
+/data/*
+!/data/.gitignore
+!/data/README.md
+!/data/*.dvc
 /models
 /outputs
+
 *.bkp
 lightning_logs/
 .~lock.*
 /checkpoints
+octave-workspace
