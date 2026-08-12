@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class Encoder(nn.Module):
     def __init__(self, input_size, n_embeddings):
-        super(Encoder, self).__init__()
+        super().__init__()
         self.encode = nn.Sequential(
             nn.Linear(input_size, input_size // 2),
             nn.ReLU(),
@@ -20,7 +20,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, n_embeddings, n_outputs):
-        super(Decoder, self).__init__()
+        super().__init__()
         self.decode = nn.Sequential(
             nn.Linear(n_embeddings, n_outputs * 2),
             nn.ReLU(),

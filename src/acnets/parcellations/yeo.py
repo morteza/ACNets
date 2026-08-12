@@ -1,20 +1,19 @@
 # %% TODO this is a WIP
 
-import numpy as np
+from pathlib import Path
 
 import matplotlib.pyplot as plt
-
+import numpy as np
 from nilearn import datasets, plotting
-from nilearn.input_data import NiftiLabelsMasker
 from nilearn.connectome import ConnectivityMeasure
+from nilearn.input_data import NiftiLabelsMasker
 from nilearn.regions import connected_label_regions
-
-from pathlib import Path
 
 # Yeo2011 Atlas
 
-# Steps: 
-# 1. fetch atlas, 2. relabel atlas for continuity, 3. resample images, 4. mask and extract time series
+# Steps:
+# 1. fetch atlas, 2. relabel atlas for continuity, 3. resample images,
+# 4. mask and extract time series
 
 # atlas = datasets.fetch_atlas_yeo_2011()['thick_7'],
 # merge voxels belonging to the same network based on spatial continuity

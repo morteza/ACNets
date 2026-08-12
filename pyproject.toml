@@ -1,8 +1,183 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "acnets"
+version = "0.1.0"
+description = "Multiverse analysis and explainable classification of action video game experience from resting-state fMRI connectivity"
+readme = "README.md"
+# 3.14 is the newest the dependency set supports. 3.15 resolves everything
+# except torch, which has no 3.15 ABI wheels yet; revisit when it does.
+requires-python = ">=3.14"
+
+dependencies = [
+    # data
+    "numpy",
+    "pandas",
+    "xarray",
+    "netCDF4",
+    "h5netcdf",
+    # h5netcdf treats its backends as optional (it can also sit on h5pyd), so
+    # h5py has to be asked for by name. Everything in data/ is opened with
+    # engine='h5netcdf', and without this the first read fails with "No module
+    # named 'h5py', backend not available".
+    "h5py",
+    # scientific core
+    "scipy",
+    "scikit-learn",
+    # arrives with scikit-learn anyway, but acnets.multiverse.runner and
+    # acnets.datasets.lemon import it directly
+    "joblib",
+    # neuroimaging
+    "nilearn",
+    "pybids",
+    # modelling and explanation
+    "xgboost",
+    "shap",
+    "scikit-explain",
+    # shap depends on numba, and numba's numpy ceiling trails the newest numpy by
+    # a release or two. Without this floor the resolver satisfies that ceiling by
+    # walking numba back to 0.53.1, which drags in llvmlite 0.36 -- an sdist that
+    # refuses to build on anything past Python 3.9 and makes the whole
+    # environment unsolvable. Flooring numba instead lets the resolver settle
+    # numpy just below the ceiling, which is why numpy lands on 2.4 rather than
+    # the newest. Raise this as numba raises its own ceiling; the symptom of
+    # setting it too high is a compile error in a package you never asked for.
+    "numba>=0.62",
+    # visualisation
+    "matplotlib",
+    "seaborn",
+    # tooling
+    "dvc",
+    "dvc-ssh",
+    "rich",
+    "tqdm",
+    "pydicom>=3.0.2",
+]
+
+# pyspi was evaluated as a source of additional connectivity statistics and
+# dropped. It is not a dependency and should not be added back without a reason
+# that survives the argument below.
+#
+# The residue of the evaluation is `notebooks/playground/8 PySPI Features.ipynb`
+# and a leftover `spi` conda environment from the pixi days. What it offers is
+# breadth, on the order
+# of 200 pairwise statistics; what this project needs is statistics that differ
+# in their *assumptions*. The family-wise max-statistic null in
+# acnets.multiverse.inference is taken over the whole specification grid, so
+# every added statistic raises the bar the observed effect must clear. Adding
+# fifty variants of a covariance costs real power and buys no independent
+# information. The seven statistics in acnets.multiverse.specification were
+# chosen to span assumption classes instead: linear, conditional, Riemannian,
+# rank-based and directed.
+#
+# Anything computed with pyspi (or any other external tool) can still enter the
+# multiverse without becoming a dependency: write the matrices to disk and
+# declare the statistic with Specification's `ext:` prefix, via
+# SpecificationRegistry.with_external.
+#
+# NOTE: the original wording of this note was lost in the merge of `multimodal`
+# into `main`; acnets/multiverse/{specification,registry}.py both cite it. This
+# is a reconstruction from those two call sites -- check that it still says what
+# you meant before citing it in the manuscript.
+
+[project.optional-dependencies]
+# Transfer entropy. Kept out of the base dependencies because pyinform is
+# awkward twice over: its setup.py refuses to build from source on Python >=
+# 3.10, and the wheel it does install vendors `libinform` for x86_64 only, so on
+# Apple Silicon it installs cleanly and then fails at call time with an
+# incompatible-architecture dlopen error. **`transfer_entropy` specifications
+# therefore do not run on an arm64 mac at all**, whatever the interpreter.
+#
+# Nothing imports it at module scope -- acnets.connectome._transfer_entropy
+# imports it inside the function -- so installing this extra is harmless and
+# only the transfer_entropy specifications are affected. Run them on the x86_64
+# cluster, or precompute the matrices and read them back through
+# Specification's `ext:` prefix.
+te = [
+    "pyinform",
+]
+
+# Deep learning (src/acnets/deep, src/multimodal).
+#
+# Plain PyTorch. Keras and Lightning were both dropped: the models were written
+# against two different frameworks for no reason other than which branch they
+# landed on, which is also why gan.py existed twice. tensorboard is here for
+# SummaryWriter only, which is the one thing worth keeping from the Lightning
+# setup.
+dl = [
+    "torch",
+    "tensorboard",
+    "ray[tune]",
+]
+
+# Hyperparameter search for the classic pipeline.
+tune = [
+    "ray[tune]",
+]
+
+# quartodoc reads the docstrings; the quarto binary that renders them is
+# installed on the system, not from PyPI. The `quarto-cli` PyPI package is a
+# downloader shim that fetches a tarball at build time and fails the whole sync
+# when it cannot.
+docs = [
+    "quartodoc",
+]
+
+[dependency-groups]
+# Synced by default; see [tool.uv].default-groups.
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pytest-mpl",
+    "ruff",
+    "ipykernel",
+    "ipywidgets",
+    "watermark",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/acnets", "src/multimodal"]
+
 [tool.pytest.ini_options]
 addopts = "-rP -q --capture=sys --log-level=INFO"
-testpaths = [
-    "tests", "src",
-]
-# main used test_*.py, the multimodal branch used *_test.py; accept both,
-# otherwise the multimodal setting silently hides the tests/ suite
+testpaths = ["tests", "src"]
 python_files = ["test_*.py", "*_test.py"]
+pythonpath = ["src"]
+
+[tool.uv]
+# The project is installed editable into .venv by `uv sync`.
+package = true
+# ray is the only thing pulling a large transitive tree that most work never
+# touches, so `tune` and `dl` are kept out of the default sync. Use
+# `uv sync --all-extras` when you need them.
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes (what flake8 gave), plus the checks worth having
+# now that the linter is fast enough to run on every save: I isort, UP pyupgrade,
+# B bugbear, SIM simplify, RUF ruff-specific.
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+    # Two-space indents are the house style in the older acnets modules and
+    # reindenting them would bury the real history in whitespace commits.
+    "E111", "E114", "E117",
+    # `l` is not used as an identifier here; the rule mostly fires on `I` and `O`
+    # in maths-heavy code where they are the conventional names.
+    "E741",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert on expressions and shadow names deliberately.
+"*_test.py" = ["B011"]
+"tests/*" = ["B011"]
+# Re-export modules exist to be re-exported from.
+"**/__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["acnets", "multimodal"]

@@ -10,12 +10,18 @@ We highly recommend using [BIDS](https://bids-specification.readthedocs.io/en/st
 Before running notebooks, you need to take care of a few things:
 
 
-1. **Prepare the environment**: ACNets requires Conda/Mamba to manage dependencies. Run the following code to create an environment called `acnets` and install all the dependencies in it:
+1. **Prepare the environment**: ACNets uses [uv](https://docs.astral.sh/uv/), which fetches the
+   Python interpreter itself (3.14, pinned in `.python-version`), so nothing needs installing
+   first:
 
 ```bash
-mamba env create -f environment.yml
-mamba activate acnets
+uv sync                  # the classic pipeline and the dev tools
+uv sync --all-extras     # adds torch, ray, quartodoc and pyinform
 ```
+
+   Run things with `uv run <command>`, or activate `.venv` directly. Conda, mamba,
+   `environment.yml` and pixi were all used at various points and are all gone;
+   `pyproject.toml` is the only place dependencies are declared.
 
 2. **Attach the datasets**: ACNets datasets are huge in size, thereby managed separately by DVC. Use the following command to download the datasets:
 

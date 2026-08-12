@@ -1,17 +1,23 @@
-import os
-from typing import Literal
-import pytorch_lightning as pl
-import torch
-from torch.utils.data import DataLoader, TensorDataset
-
-from sklearn.preprocessing import LabelEncoder
-from ..pipeline import Parcellation, ConnectivityExtractor, TimeseriesAggregator, ConnectivityAggregator
-from ..parcellations import dosenbach
-from sklearn.model_selection import train_test_split
 from pathlib import Path
+from typing import Literal
+
+import torch
+import xarray as xr
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from torch.utils.data import TensorDataset
+
+from ..parcellations import aal, dosenbach
+from ..pipeline import (
+    ConnectivityAggregator,
+    ConnectivityExtractor,
+    Parcellation,
+    TimeseriesAggregator,
+)
+from ._datamodule import DEFAULT_WORKERS, DataModule
 
 
-class Julia2018DataModule(pl.LightningDataModule):
+class Julia2018DataModule(DataModule):
     """Julia2018 preprocessed resting-state dataset.
 
     Args:
@@ -45,30 +51,31 @@ class Julia2018DataModule(pl.LightningDataModule):
                  test_ratio=.25,
                  shuffle=True,
                  batch_size=8,
-                 num_workers=os.cpu_count() - 1):  # type: ignore
+                 num_workers=DEFAULT_WORKERS):
 
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(
+            atlas=atlas, kind=kind, aggregation_strategy=aggregation_strategy,
+            dataset_path=dataset_path, segment_length=segment_length,
+            test_ratio=test_ratio, shuffle=shuffle, batch_size=batch_size,
+            num_workers=num_workers)
 
         self.y_encoder = LabelEncoder()
+        # Parcellating the raw BIDS tree takes minutes and needs data/julia2018/,
+        # which DVC no longer tracks; the parcellated result is small and is
+        # tracked, as data/Julia2018/. Prefer it and fall back to parcellating.
+        # The multimodal copy of this class read only the cache and the acnets
+        # copy only parcellated, which is the whole of the difference between
+        # them.
+        self.timeseries_dataset_path = Path(f'data/Julia2018/timeseries_{atlas}.nc5')
 
         match atlas:
             case 'dosenbach2010':
                 self._atlas_masker, self._parcels = dosenbach.load_dosenbach2010_masker()
             case 'aal':
-                from nilearn import maskers
-                import pandas as pd
-
-                self._parcels = pd.read_csv('data/atlases/AAL3v1.csv')
-                self._parcels.dropna(subset=['index'], inplace=True)
-                self._parcels.set_index('region', inplace=True)
-
-                self._atlas_masker = maskers.NiftiLabelsMasker(
-                    'data/atlases/AAL3v1.nii.gz',
-                    standardize='zscore_sample',
-                    standardize_confounds='zscore_sample',
-                    # detrend=True,
-                    verbose=0)
+                # see the note in datasets/lemon.py: this was a third copy of
+                # parcellations.aal.load_masker
+                self._atlas_masker, self._parcels = aal.load_masker()
 
             case _:
                 raise ValueError(f'Atlas {atlas} is not supported.')
@@ -77,14 +84,26 @@ class Julia2018DataModule(pl.LightningDataModule):
         # just calling parcellation once, so time-series will be cached
         self.get_timeseries(self.hparams['dataset_path'])
 
-    def get_timeseries(self, dataset_path, n_subjects=None):
-        x_time_regions = Parcellation(
+    def get_timeseries(self, dataset_path=None, n_subjects=None):
+        """Parcellated timeseries, from the cache when it is there.
+
+        Falls back to parcellating the BIDS tree, which is what produced the
+        cache in the first place.
+        """
+        if self.timeseries_dataset_path.exists():
+            with xr.open_dataset(self.timeseries_dataset_path,
+                                 engine='h5netcdf') as dataset:
+                dataset.load()
+            if n_subjects is not None:
+                dataset = dataset.isel(subject=slice(n_subjects))
+            return dataset
+
+        return Parcellation(
             atlas_name=self.hparams['atlas'],
-            bids_dir=dataset_path,
+            bids_dir=dataset_path or self.hparams['dataset_path'],
             fmriprep_bids_space='MNI152NLin2009cAsym',
             normalize=True
         ).fit_transform(X=None)
-        return x_time_regions
 
     def segment_timeseries(self, x):
         if self.hparams['segment_length'] > 0:
@@ -98,7 +117,7 @@ class Julia2018DataModule(pl.LightningDataModule):
             # skip setup if reloading is not required
             return
 
-        x_time_regions = self.get_timeseries(self.hparams['dataset_path'])
+        x_time_regions = self.get_timeseries()
 
         match self.hparams['aggregation_strategy']:
             case 'time_regions':
@@ -111,19 +130,22 @@ class Julia2018DataModule(pl.LightningDataModule):
                 x_time_wavelets = TimeseriesAggregator(
                     strategy='wavelet', wavelet_name='db1').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_wavelets['wavelets'].values)
-            case 'time_networks' if 'network' in x_time_regions.data_vars.keys():
-                x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
+            case 'time_networks' if 'network' in x_time_regions.data_vars:
+                x_time_networks = TimeseriesAggregator(
+                    strategy='network').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_networks['timeseries'].values)
-            case 'tconn_networks' if 'network' in x_time_regions.data_vars.keys():
-                x_time_networks = TimeseriesAggregator(strategy='network').fit_transform(x_time_regions)
+            case 'tconn_networks' if 'network' in x_time_regions.data_vars:
+                x_time_networks = TimeseriesAggregator(
+                    strategy='network').fit_transform(x_time_regions)
                 x = torch.Tensor(x_time_networks['timeseries'].values)
                 x_tconn_networks = ConnectivityExtractor(
                     kind=self.hparams['kind']).fit_transform(x_time_networks)
                 x = torch.Tensor(x_tconn_networks['connectivity'].values)
-            case 'cconn_networks' if 'network' in x_time_regions.data_vars.keys():
+            case 'cconn_networks' if 'network' in x_time_regions.data_vars:
                 x_conn_regions = ConnectivityExtractor(
                     kind=self.hparams['kind']).fit_transform(x_time_regions)
-                x_cconn_networks = ConnectivityAggregator(strategy='network').fit_transform(x_conn_regions)
+                x_cconn_networks = ConnectivityAggregator(
+                    strategy='network').fit_transform(x_conn_regions)
                 x = torch.Tensor(x_cconn_networks['connectivity'].values)
             case _:
                 raise ValueError(f'Aggregation strategy {self.hparams["aggregation_strategy"]} '
@@ -148,18 +170,3 @@ class Julia2018DataModule(pl.LightningDataModule):
         self.train = torch.utils.data.Subset(self.full_data, train_idx)
         self.test = torch.utils.data.Subset(self.full_data, test_idx)
 
-    def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.hparams['batch_size'],
-                          num_workers=self.hparams['num_workers'],
-                          persistent_workers=True)
-
-    def val_dataloader(self):
-        # FIXME Note this is the same as the test dataloader (change to self.val for separate validation set)
-        return DataLoader(self.test, batch_size=self.hparams['batch_size'],
-                          num_workers=self.hparams['num_workers'],
-                          persistent_workers=True)
-
-    def test_dataloader(self):
-        return DataLoader(self.test, batch_size=self.hparams['batch_size'],
-                          num_workers=self.hparams['num_workers'],
-                          persistent_workers=True)

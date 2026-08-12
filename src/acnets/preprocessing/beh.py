@@ -166,7 +166,13 @@ class Julia2018BehavioralPreprocessor():
                                           .cumsum()
                                           .ffill())
 
-      TRIALS = EVENTS.groupby(['trial_index'], as_index=False).apply(self.events_to_trial)
+      # `[EVENTS.columns]` keeps the grouping column inside each group. pandas
+      # used to hand the group to .apply() with `trial_index` still on it; it now
+      # excludes the grouping columns, and events_to_trial reads
+      # `events.trial_index.iloc[0]` on the first line.
+      TRIALS = (EVENTS
+                .groupby(['trial_index'], as_index=False)[list(EVENTS.columns)]
+                .apply(self.events_to_trial))
 
       TRIALS['response_time'] = TRIALS['response_onset'] - TRIALS['stimulus_onset']
       TRIALS['correct'] = (TRIALS['stimulus'] == TRIALS['response']) & (TRIALS['response_time'] > 0)

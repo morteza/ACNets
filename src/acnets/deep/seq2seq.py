@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class Encoder(nn.Module):
     def __init__(self, input_size, n_embeddings):
-        super(Encoder, self).__init__()
+        super().__init__()
         self.rnn = nn.LSTM(input_size=input_size,
                            hidden_size=n_embeddings,
                            batch_first=True)
@@ -17,7 +17,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, input_size, output_size):
-        super(Decoder, self).__init__()
+        super().__init__()
         self.rnn = nn.LSTM(input_size=input_size,
                            hidden_size=output_size,
                            batch_first=True)

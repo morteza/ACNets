@@ -2,12 +2,6 @@ import os
 from pathlib import Path
 import json
 
-try:
-  from nipype.interfaces.dcm2nii import Dcm2niix
-except ImportError:
-  raise "dcm2bids() requires nipype and dcm2niix."
-
-
 def dcm2bids(dcm_dir: Path,
              out_dir: Path,
              out_filename: str,
@@ -15,6 +9,19 @@ def dcm2bids(dcm_dir: Path,
   """Converts raw DCM files to BIDS-compatible Nifti and sidecar.
 
   """
+
+  # imported here rather than at module scope: nipype and dcm2niix are only
+  # needed to convert raw DICOMs, which is a one-off that has already been done
+  # for this dataset. At module scope the import made the whole
+  # acnets.preprocessing package unimportable without them, which took
+  # preprocessing.beh -- the behavioural reconstruction the brain-behaviour
+  # analysis reads -- down with it.
+  try:
+    from nipype.interfaces.dcm2nii import Dcm2niix
+  except ImportError as e:
+    raise ImportError(
+        'dcm2bids() requires nipype and dcm2niix, neither of which is a '
+        'declared dependency of this project.') from e
 
   out_path = out_dir / f'{out_filename}.nii.gz'
 

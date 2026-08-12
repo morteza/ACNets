@@ -1,7 +1,6 @@
 from sklearn.base import TransformerMixin, BaseEstimator
 import numpy as np
-import pandas as pd
-from typing import Literal, Callable
+from typing import Literal
 
 
 class TimeseriesAggregator(TransformerMixin, BaseEstimator):
@@ -27,23 +26,28 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
 
   def transform(self, dataset):
 
+    # every branch records the strategy on the returned dataset, so a scale is
+    # never inferred later from the shape of the array. 'region' rather than
+    # None, so the attribute is always a readable string.
+    new_dataset = dataset.copy()
+
     if self.strategy is None:
-      return dataset.copy()
+      new_dataset.attrs['timeseries_aggregation_strategy'] = 'region'
+      return new_dataset
 
     if self.strategy == 'wavelet':
       import pywt
-      new_dataset = dataset.copy()
       ts = dataset['timeseries'].transpose('subject', 'region', 'timepoint')
       coefs = pywt.wavedec(ts, wavelet=self._wavelet_name)
       coefs_image = np.concatenate(coefs, axis=2)
       coefs_image = coefs_image[..., :self._wavelet_coef_dim]
       new_dataset['wavelets'] = (['subject', 'wavelet_dim', 'region'],
                                  coefs_image.transpose(0, 2, 1))  # subject, wavelet_dim, region
+      new_dataset.attrs['timeseries_aggregation_strategy'] = 'wavelet'
       return new_dataset
 
     # if strategy is 'network' or 'random_network'
 
-    new_dataset = dataset.copy()
     new_dataset = new_dataset.set_coords('network')
 
     if self.strategy == 'random_network':
@@ -55,6 +59,7 @@ class TimeseriesAggregator(TransformerMixin, BaseEstimator):
     network_timeseries = network_timeseries.transpose('subject', 'timepoint', 'network')
     new_dataset['region_timeseries'] = new_dataset['timeseries']
     new_dataset['timeseries'] = network_timeseries
+    new_dataset.attrs['timeseries_aggregation_strategy'] = self.strategy
 
     return new_dataset
 

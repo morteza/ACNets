@@ -1,8 +1,7 @@
-import pytest
 import numpy as np
-from src.acnets.pipeline import ConnectivityVectorizer
-from src.acnets.pipeline import ConnectivityExtractor
-from src.acnets.pipeline import Parcellation
+import pytest
+
+from acnets.pipeline import ConnectivityExtractor, ConnectivityVectorizer, Parcellation
 
 
 @pytest.mark.parametrize('n_dim', [1, 2, 3, 10, 100])
@@ -36,11 +35,14 @@ def test_full_vectorizer(n_dim):
 ])
 def test_triu_connectivity_vectorizer(atlas_name, kind):
 
-  dataset = Parcellation(atlas_name=atlas_name).fit().dataset
-  timeseries = dataset['timeseries'].values
+  # ConnectivityExtractor is an xarray-to-xarray transformer: it reads
+  # dataset['timeseries'] and returns the dataset with a 'connectivity' variable
+  # added. Passing the bare .values array, as this test used to, reaches
+  # dataset['timeseries'] on a numpy array and raises IndexError.
+  dataset = Parcellation(atlas_name=atlas_name).fit().dataset_
 
   extractor = ConnectivityExtractor(kind=kind, verbose=1)
-  all_conns = extractor.fit_transform(timeseries)
+  all_conns = extractor.fit_transform(dataset)['connectivity'].values
 
   for conn in all_conns:
     vectorizer = ConnectivityVectorizer(discard_tril=True,
@@ -60,11 +62,14 @@ def test_triu_connectivity_vectorizer(atlas_name, kind):
 ])
 def test_diagonal_connectivity_vectorizer(atlas_name, kind):
 
-  dataset = Parcellation(atlas_name=atlas_name).fit().dataset
-  timeseries = dataset['timeseries'].values
+  # ConnectivityExtractor is an xarray-to-xarray transformer: it reads
+  # dataset['timeseries'] and returns the dataset with a 'connectivity' variable
+  # added. Passing the bare .values array, as this test used to, reaches
+  # dataset['timeseries'] on a numpy array and raises IndexError.
+  dataset = Parcellation(atlas_name=atlas_name).fit().dataset_
 
   extractor = ConnectivityExtractor(kind=kind, verbose=1)
-  all_conns = extractor.fit_transform(timeseries)
+  all_conns = extractor.fit_transform(dataset)['connectivity'].values
 
   for conn in all_conns:
     vectorizer = ConnectivityVectorizer(only_diagonal=True)

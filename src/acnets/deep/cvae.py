@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import pytorch_lightning as pl
 
 
-class Encoder(pl.LightningModule):
+class Encoder(nn.Module):
     def __init__(self, n_channels, n_embeddings):
         super().__init__()
 
@@ -24,7 +23,7 @@ class Encoder(pl.LightningModule):
         return out
 
 
-class Decoder(pl.LightningModule):
+class Decoder(nn.Module):
     def __init__(self, n_channels, n_embeddings):
         super().__init__()
         self.decode = nn.Sequential(
@@ -32,9 +31,11 @@ class Decoder(pl.LightningModule):
             nn.Unflatten(dim=1, unflattened_size=(n_channels * 8, 1)),
             nn.ConvTranspose1d(n_channels * 8, n_channels * 4, kernel_size=5, stride=2),
             nn.ReLU(),
-            nn.ConvTranspose1d(n_channels * 4, n_channels * 2, kernel_size=5, stride=2, output_padding=1),
+            nn.ConvTranspose1d(n_channels * 4, n_channels * 2, kernel_size=5,
+                               stride=2, output_padding=1),
             nn.ReLU(),
-            nn.ConvTranspose1d(n_channels * 2, n_channels, kernel_size=5, stride=2, output_padding=1),
+            nn.ConvTranspose1d(n_channels * 2, n_channels, kernel_size=5,
+                               stride=2, output_padding=1),
             # nn.Sigmoid(),
         )
 
@@ -43,7 +44,7 @@ class Decoder(pl.LightningModule):
         return out
 
 
-class CVAE(pl.LightningModule):
+class CVAE(nn.Module):
     def __init__(self, n_channels, n_embeddings, kernel_size=5, stride=2):
         super().__init__()
         self.n_embeddings = n_embeddings

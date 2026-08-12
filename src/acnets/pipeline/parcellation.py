@@ -1,15 +1,15 @@
 import re
-import xarray as xr
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from sklearn.base import TransformerMixin, BaseEstimator
-from pathlib import Path
+import xarray as xr
 from nilearn.interfaces.bids import get_bids_files
 from nilearn.interfaces.fmriprep import load_confounds_strategy
+from sklearn.base import BaseEstimator, TransformerMixin
 from tqdm import tqdm
 
-
-from ..parcellations import maxprob, dosenbach, difumo, gordon, seitzman, friedman, aal
+from ..parcellations import aal, difumo, dosenbach, friedman, gordon, maxprob, seitzman
 
 _masker_funcs = {
     'cort-maxprob': maxprob.load_masker,
@@ -83,7 +83,7 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
   def _load_masker(self, atlas_name, mask_file):
     # default implementation when none of the atlases matched in the __init__.
-    raise NotImplementedError('Atlas name {} not recognized.'.format(self.atlas_name))
+    raise NotImplementedError(f'Atlas name {self.atlas_name} not recognized.')
 
   def _normalize_func(self, x: xr.DataArray):
     """Normalize the subject data to [-1, 1] range."""
@@ -103,7 +103,12 @@ class Parcellation(TransformerMixin, BaseEstimator):
     timepoints_mask = np.zeros(n_scans, dtype=bool)
     timepoints_mask[np.array(list(valid_timepoints)) - 1] = True
 
-    img_iterator = zip(img_files, mask_files, confounds, sample_masks)
+    # strict: these four are parallel per-subject lists. If the BIDS queries for
+    # images and for brain masks return different counts, zipping to the shorter
+    # one pairs each image with another subject's mask and carries on, which
+    # produces a plausible-looking result that is wrong for every subject after
+    # the first missing file.
+    img_iterator = zip(img_files, mask_files, confounds, sample_masks, strict=True)
 
     if self.verbose > 0:
       img_iterator = tqdm(img_iterator, total=len(img_files))
@@ -113,14 +118,55 @@ class Parcellation(TransformerMixin, BaseEstimator):
 
       subject = re.search('func/sub-(.*)_ses', img)[1]
       self.masker_, _ = self._load_masker(atlas_name, mask)
-      ts = self.masker_.fit_transform(img, confound, sample_mask)
+      # keyword, not positional: the masker signature is
+      # fit_transform(imgs, y=None, confounds=None, sample_mask=None), so the
+      # old positional call bound `confound` to `y` and `sample_mask` to
+      # `confounds`. The confounds were silently never applied, and the three
+      # subjects with a non-steady-state volume then failed the length check
+      # with "Signal length: 125; confound length: 124" -- 124 being the size of
+      # the sample_mask that had arrived in the confounds slot.
+      ts = self.masker_.fit_transform(img, confounds=confound,
+                                      sample_mask=sample_mask)
 
       if ts.shape[0] > len(valid_timepoints):
         ts = ts[timepoints_mask]
 
-      _timeseries[subject] = ts
+      _timeseries[subject] = self._align_regions(ts)
 
     return _timeseries
+
+  def _align_regions(self, ts):
+    """Put every subject's columns in the same atlas order.
+
+    A NiftiLabelsMasker given a per-subject brain mask drops any atlas region
+    that has no voxels under that mask, and returns the survivors packed to the
+    left. Subjects therefore come back with different widths -- for Gordon 2014
+    this repo sees 329 to 333 of 333 -- and, worse, column k means a different
+    region for different subjects. Stacking them then either raises (different
+    widths) or silently builds a feature matrix in which the same column is a
+    different part of the brain per participant.
+
+    nilearn's own answer, `keep_masked_labels=True`, is deprecated and goes away
+    in 0.15, so this reindexes explicitly instead: allocate the full atlas width
+    and place each returned column at the position its region occupies in
+    `self.labels_`. Missing regions stay zero, which is what the deprecated flag
+    did. Maskers with no `region_names_` (NiftiSpheresMasker, NiftiMapsMasker)
+    never drop anything and pass straight through.
+    """
+    region_names = getattr(self.masker_, 'region_names_', None)
+    if region_names is None:
+      return ts
+
+    canonical = {str(name): i for i, name in enumerate(self.labels_.index)}
+    if ts.shape[1] == len(canonical) and list(region_names.values()) == list(canonical):
+      return ts  # already in atlas order, nothing to do
+
+    aligned = np.zeros((ts.shape[0], len(canonical)), dtype=ts.dtype)
+    for column, name in region_names.items():
+      position = canonical.get(str(name))
+      if position is not None:
+        aligned[:, position] = ts[:, column]
+    return aligned
 
   def create_dataset(self, timeseries=None):
 
@@ -167,9 +213,13 @@ class Parcellation(TransformerMixin, BaseEstimator):
     cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
 
     if overwrite or not cached_ds_path.exists():
+      # derivatives/resting_timeseries/ is a cache, so it is not in the BIDS
+      # tree DVC restores; create it rather than failing after having done the
+      # expensive part.
+      cached_ds_path.parent.mkdir(parents=True, exist_ok=True)
       dataset.to_netcdf(cached_ds_path, engine='h5netcdf')
 
-  def fit(self, X=None, y=None, **fit_params):  # noqa: N803
+  def fit(self, X=None, y=None, **fit_params):
 
     cached_ds_path = Path(self.cache_dir).expanduser() / f'timeseries_{self.atlas_name}.nc5'
 
@@ -182,17 +232,25 @@ class Parcellation(TransformerMixin, BaseEstimator):
       dataset = xr.open_dataset(cached_ds_path, engine='h5netcdf')
       self.feature_names_ = dataset.coords['region'].values.tolist()
 
+    # matches ConnectivityPipeline and CerebellumPipeline, which both expose the
+    # result as dataset_. transform() overwrites it with whatever subset it
+    # returns.
+    self.dataset_ = dataset
+
     return self
 
-  def transform(self, X=None):  # noqa: N803
+  def transform(self, X=None):
     """Extract region time-series from the dataset.
 
     Parameters
     ----------
-    X : list, optional
+    X : list or str, optional
         list of participant ids to select (BIDS-compatible without `sub-` prefix), e.g.,
-        ['AVGP-01', 'NVGP-03'] returns two subjects. Passing `None` will return all
-        the subjects. Defaults to None.
+        ['AVGP-01', 'NVGP-03'] returns two subjects. `None` or the string 'all'
+        returns every subject. Defaults to None.
+
+        'all' is what the notebooks and tests actually pass, and until now it
+        reached `X.reshape(-1)` and raised AttributeError; only `None` worked.
 
     Returns
     -------
@@ -214,12 +272,19 @@ class Parcellation(TransformerMixin, BaseEstimator):
         dataset = xr.open_dataset(cached_ds_path, engine='h5netcdf')
         dataset = dataset.set_coords('region')
 
-    if X is not None:
-      selected_subjects = X.reshape(-1).tolist()
+    if X is not None and not (isinstance(X, str) and X == 'all'):
+      # accept a list, an ndarray or a single id; only ndarray has .reshape
+      selected_subjects = (
+          [X] if isinstance(X, str) else np.asarray(X).reshape(-1).tolist())
       dataset = dataset.sel(subject=selected_subjects)
 
     if self.normalize:
       dataset['timeseries'] = self._normalize_func(dataset['timeseries'])
+
+    # kept for callers that reach for the result after the fact, which is what
+    # the tests and several notebooks do; trailing underscore to match masker_,
+    # labels_ and feature_names_
+    self.dataset_ = dataset
 
     return dataset
 

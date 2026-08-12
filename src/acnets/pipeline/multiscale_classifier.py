@@ -22,7 +22,24 @@ from . import (ConnectivityAggregator, ConnectivityExtractor, Parcellation,
 class ExtractH1Features(TransformerMixin, BaseEstimator):
     """Extract region-level timeseries features (H1).
 
-    Currently, only mean of timeseries is extracted.
+    .. warning::
+
+       **This transformer returns approximately zero and should not be used.**
+       It takes the temporal mean of each region's time course, but the
+       parcellated time courses are z-scored upstream, so the means are
+       numerical residue: measured on Julia2018/dosenbach2010 at a maximum
+       absolute value of 0.033 against a per-region SD of 0.996. Any comparison
+       of regional against network features built on this block will find
+       regional features uninformative regardless of what the data contain.
+
+       The commented-out alternative below, per-region SD, is no better: it
+       spans 0.93 to 1.00 by the same standardisation.
+
+       `acnets.analysis.multiscale` implements the replacement the paper's
+       section 3.2 actually uses -- regional weighted degree computed from a
+       region-level connectivity matrix -- with tests. Prefer it. This class is
+       retained only because `notebooks/ml/2 MultiScale Classifier.ipynb`
+       references it; nothing on the multiverse grid path does.
 
     Inputs
     ------

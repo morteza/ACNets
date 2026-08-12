@@ -1,8 +1,9 @@
-from pathlib import Path
-import pandas as pd
-from sklearn.utils import Bunch
-from nilearn import maskers
 import re
+from pathlib import Path
+
+import pandas as pd
+from nilearn import maskers
+from sklearn.utils import Bunch
 
 
 def fetch_atlas(atlas_version_name='gordon2014',
@@ -27,7 +28,7 @@ def fetch_atlas(atlas_version_name='gordon2014',
     data_dir = Path(data_dir).expanduser() / atlas_version_name
 
     labels = pd.read_csv(data_dir / 'Parcels.csv')
-    
+
     labels.rename(columns={
         'ParcelID': 'region',
         'Hem': 'hemisphere',
@@ -55,10 +56,15 @@ def load_masker(atlas_name, mask_img, t_r=3.0):
 
     masker = maskers.NiftiLabelsMasker(
         atlas.maps,
-        labels=['0'] + [str(lbl) for lbl in atlas.labels.index],
+        # no background entry: nilearn 0.14 expects one name per *returned*
+        # region, and prepending '0' shifted every name one position, so column
+        # 0 was reported as region '0' when it is atlas region 1. It also warned
+        # "Too many names for the indices" on every call.
+        labels=[str(lbl) for lbl in atlas.labels.index],
         mask_img=mask_img,
         standardize='zscore_sample',
-        standardize_confounds='zscore_sample',
+        # nilearn 0.14 narrowed this to bool; True is what 'zscore_sample' meant
+        standardize_confounds=True,
         # detrend=True,
         # standardize=True,
         # t_r=t_r,

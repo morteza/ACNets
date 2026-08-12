@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import pytorch_lightning as pl
 
 
-class Encoder(pl.LightningModule):
+class Encoder(nn.Module):
     def __init__(self, n_inputs, n_ouputs):
         super().__init__()
 
@@ -21,7 +20,7 @@ class Encoder(pl.LightningModule):
         return out
 
 
-class Decoder(pl.LightningModule):
+class Decoder(nn.Module):
     def __init__(self, n_inputs, n_ouputs):
         super().__init__()
         self.decode = nn.Sequential(
@@ -37,7 +36,7 @@ class Decoder(pl.LightningModule):
         return out
 
 
-class MaskedVAE(pl.LightningModule):
+class MaskedVAE(nn.Module):
     def __init__(self, n_inputs, n_embeddings, mask_size):
         super().__init__()
         self.n_embeddings = n_embeddings

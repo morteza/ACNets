@@ -1,5 +1,5 @@
-from nilearn import datasets, maskers
 import pandas as pd
+from nilearn import datasets, maskers
 
 
 def load_masker(atlas_name: str, mask_img=None, t_r=3.0):
@@ -46,7 +46,8 @@ def load_dosenbach2007_masker(atlas_labels_path='data/dosenbach2007/ROIs.csv', t
       allow_overlap=False,
       detrend=True,
       standardize='zscore_sample',
-      standardize_confounds='zscore_sample',
+      # nilearn 0.14 narrowed this to bool; True is what 'zscore_sample' meant
+      standardize_confounds=True,
       low_pass=0.08,
       high_pass=0.009,
       t_r=t_r,
@@ -56,9 +57,10 @@ def load_dosenbach2007_masker(atlas_labels_path='data/dosenbach2007/ROIs.csv', t
 
 
 def load_dosenbach2010_masker(t_r=None):
-  atlas_dict = datasets.fetch_coords_dosenbach_2010(
-      ordered_regions=False,
-      legacy_format=False)
+  # legacy_format was dropped in nilearn 0.13; the non-legacy shape it used to
+  # select (rois as a DataFrame, networks as a Series) is now the only one, and
+  # is what the lines below already assume.
+  atlas_dict = datasets.fetch_coords_dosenbach_2010(ordered_regions=False)
 
   atlas_dict.pop('description', None)
   atlas_coords = atlas_dict['rois'].values
@@ -70,7 +72,8 @@ def load_dosenbach2010_masker(t_r=None):
       radius=5,
       allow_overlap=False,
       standardize='zscore_sample',
-      standardize_confounds='zscore_sample',
+      # nilearn 0.14 narrowed this to bool; True is what 'zscore_sample' meant
+      standardize_confounds=True,
       #   detrend=True,
       #   standardize=True,
       #   low_pass=0.08,

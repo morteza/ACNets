@@ -1,12 +1,11 @@
-from ._fine_tunable import FineTunable
 from torch import nn
-import pytorch_lightning as pl
-import torchmetrics as metrics
+
+from ._fine_tunable import FineTunable
 from .mvae import MaskedVAE
 from .seq2seq import Seq2SeqAE
 
 
-class Classifier(pl.LightningModule):
+class Classifier(nn.Module):
     def __init__(self, n_inputs=32):
         super().__init__()
 
@@ -26,7 +25,7 @@ class Classifier(pl.LightningModule):
 
 
 class MaskedModel(FineTunable):
-    """_summary_
+    """Autoencoder over masked input, with a classification head.
 
     Args:
         x (torch.Tensor): shape: (subjects, timepoints, regions)
@@ -38,10 +37,10 @@ class MaskedModel(FineTunable):
     def __init__(self, n_features, n_embeddings, input_type):
         super().__init__()
 
-        self.save_hyperparameters()
+        self.save_hyperparameters(n_features=n_features,
+                                  n_embeddings=n_embeddings,
+                                  input_type=input_type)
         self.model_name = f'masked_{input_type}'
-
-        self.accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
 
         if 'time' in input_type:
             self.fe = Seq2SeqAE(n_features, n_embeddings)
@@ -56,12 +55,9 @@ class MaskedModel(FineTunable):
 
     def forward(self, x):
 
-        h, x_recon, loss_recon = self.fe(x)
+        h, _x_recon, loss_recon = self.fe(x)
         # FIXME to reuse x_recon, it should be Unflattened
 
-        if self.phase == 'finetune':
-            y = self.cls_head(h)
-        else:
-            y = None
+        y = self.cls_head(h) if self.phase == 'finetune' else None
 
         return y, h, loss_recon

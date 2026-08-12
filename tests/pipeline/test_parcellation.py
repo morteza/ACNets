@@ -1,5 +1,6 @@
 import pytest
-from src.acnets.pipeline.parcellation import Parcellation
+
+from acnets.pipeline.parcellation import Parcellation
 
 
 @pytest.mark.parametrize('atlas_name,expected_regions_dim', [
@@ -30,7 +31,7 @@ def test_parcellation(atlas_name, expected_regions_dim):
 
 def test_dosenbach2010_labels():
 
-  from src.acnets.parcellations.dosenbach import load_dosenbach2010_masker
+  from acnets.parcellations.dosenbach import load_dosenbach2010_masker
 
   _, labels = load_dosenbach2010_masker()
   assert 'network' in labels.columns

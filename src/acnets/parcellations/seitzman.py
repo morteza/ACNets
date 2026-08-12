@@ -1,5 +1,4 @@
 import pandas as pd
-from sklearn.utils import Bunch
 from nilearn import datasets, maskers
 
 
@@ -8,9 +7,9 @@ def load_masker(atlas_name: str, mask_img=None, t_r=3.0):
     if atlas_name != 'seitzman2018':
         raise ValueError('`atlas_name` must be seitzman2018')
 
-    atlas = datasets.fetch_coords_seitzman_2018(
-        ordered_regions=False,
-        legacy_format=False)
+    # legacy_format was dropped in nilearn 0.13; its non-legacy shape, which is
+    # what the code below assumes, is now the only one returned.
+    atlas = datasets.fetch_coords_seitzman_2018(ordered_regions=False)
 
     atlas.pop('description', None)
     atlas_coords = atlas['rois'].values
@@ -37,6 +36,5 @@ def load_masker(atlas_name: str, mask_img=None, t_r=3.0):
     atlas_labels.index.name = 'region'
 
     atlas_labels.columns = ['x', 'y', 'z', 'radius', 'network', 'anatomical_region']
-    atlas_labels
 
     return masker, atlas_labels

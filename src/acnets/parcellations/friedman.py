@@ -1,5 +1,5 @@
-from nilearn import datasets, maskers
 import pandas as pd
+from nilearn import maskers
 
 
 def load_masker(atlas_name: str, mask_img=None, t_r=3.0):

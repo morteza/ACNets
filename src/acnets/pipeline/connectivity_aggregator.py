@@ -1,6 +1,6 @@
 from sklearn.base import TransformerMixin, BaseEstimator
 import numpy as np
-from typing import Callable, Literal
+from typing import Literal
 
 
 class ConnectivityAggregator(TransformerMixin, BaseEstimator):

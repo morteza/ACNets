@@ -1,14 +1,34 @@
+"""Two-phase models: reconstruct first, then classify.
+
+`FineTunable` is a plain `nn.Module` that knows which of two phases it is in.
+In `pretrain` only the reconstruction loss is optimised and the classifier head
+is frozen; in `finetune` the classification loss is added and everything trains.
+
+Subclasses implement `forward(x) -> (y_hat, h, loss_recon)` and own a
+`cls_head`. Everything else -- the loop, the device, the logging, the
+checkpoint -- lives in `acnets.deep.training`.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
 from typing import Literal
-import pytorch_lightning as pl
-import hashlib
+
 import torch
-from pytorch_lightning.loggers import TensorBoardLogger
+from torch import nn
 from torch.nn import functional as F
-from pytorch_lightning.callbacks import ModelCheckpoint
+
+from .training import (
+    MetricLogger,
+    Trainer,
+    accuracy,
+    checkpoint_id,
+    load_checkpoint,
+)
 
 
-class FineTunable(pl.LightningModule):
-    """Base class for fine-tunable models.
+class FineTunable(nn.Module):
+    """Base class for models pretrained on reconstruction, then fine-tuned.
 
     Raises:
         ValueError: when phase is not `finetune` or `pretrain`.
@@ -28,95 +48,97 @@ class FineTunable(pl.LightningModule):
                              'Must be `finetune` or `pretrain`.')
         self._phase = phase
 
-    def step(self, batch, batch_idx, label: Literal['train', 'val', 'test'] = 'train'):
+    @property
+    def hparams(self) -> dict:
+        return getattr(self, '_hparams', {})
 
-        x = batch[0]
-        y_hat, h, loss_recon = self(x)
+    def save_hyperparameters(self, **kwargs) -> None:
+        """Record constructor arguments, as Lightning's method of the same name did.
+
+        Explicit rather than magical: Lightning inspected the caller's frame to
+        find them, which worked until a subclass added a `*args`. Pass what you
+        want kept.
+        """
+        self._hparams = dict(kwargs)
+
+    def compute_loss(self, batch, device) -> tuple[torch.Tensor, dict]:
+        """Reconstruction loss, plus classification loss when fine-tuning."""
+        x = batch[0].to(device)
+        y_hat, _h, loss_recon = self(x)
+
         loss = loss_recon
-        self.log(f'loss_recon/{label}', loss_recon)
+        metrics = {'loss_recon': float(loss_recon.detach())}
 
         if self.phase == 'finetune':
-            y = batch[-1]
+            y = batch[-1].to(device)
             loss_cls = F.cross_entropy(y_hat, y)
-            loss += loss_cls
-            self.log(f'loss_cls/{label}', loss_cls)
+            loss = loss + loss_cls
+            metrics['loss_cls'] = float(loss_cls.detach())
+            metrics['accuracy'] = accuracy(y_hat.detach(), y)
 
-            accuracy = self.accuracy(y_hat, y)
-            self.accuracy.reset()
-            self.log(f'accuracy/{label}', accuracy)
+        return loss, metrics
 
-        return {'loss': loss}
-
-    def on_train_start(self):
-        # init custom hp metrics (default_hp_metric=False)
-        self.logger.log_hyperparams(self.hparams, {
-            'accuracy/val': torch.inf,
-            'loss_recon/val': torch.inf,
-            'loss_cls/val': torch.inf})
-
-    def training_step(self, batch, batch_idx):
-        self.unfreeze()
-        if self.phase == 'pretrain':
-            self.cls_head.freeze()
-        return self.step(batch, batch_idx, label='train')
-
-    def validation_step(self, batch, batch_idx):
-        self.freeze()
-        return self.step(batch, batch_idx, label='val')
-
-    def test_step(self, batch, batch_idx):
-        self.freeze()
-        return self.step(batch, batch_idx, label='test')
+    @torch.no_grad()
+    def validation_step(self, batch, device) -> dict:
+        loss, metrics = self.compute_loss(batch, device)
+        return {'loss': float(loss), **metrics}
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
 
+    def freeze_classifier(self, frozen: bool = True) -> None:
+        """Freeze the classification head, as the pretraining phase requires."""
+        if hasattr(self, 'cls_head'):
+            for parameter in self.cls_head.parameters():
+                parameter.requires_grad_(not frozen)
+
     def fit(self,
             datamodule,
-            max_epochs=100,
-            phase: Literal['pretrain', 'finetune', None] = None, **kwargs):
+            max_epochs: int = 100,
+            phase: Literal['pretrain', 'finetune', None] = None,
+            device=None,
+            log_root: str | Path = 'runs',
+            **kwargs) -> Trainer:
+        """Train for one phase.
 
-        callbacks: list = []  # [RichProgressBar()]
-        run_name = (
-            self.model_name
-            if hasattr(self, 'model_name')
-            else self.__class__.__name__)
+        `pretrain` writes `checkpoints/<run_name>_<id>/last.pt` and freezes the
+        classifier head; `finetune` logs under a separate run name and trains
+        everything. Returns the Trainer, whose `history` holds the per-epoch
+        metrics.
+        """
+        run_name = getattr(self, 'model_name', self.__class__.__name__)
 
         match phase:
             case 'pretrain':
-                ckpt_path = 'last'
-                ckpt_id = hashlib.md5(str(self.hparams).encode()).hexdigest()[:6]
-                print(f'ckpt_id: {ckpt_id}')
-                callbacks.append(ModelCheckpoint(
-                    dirpath=f'checkpoints/{run_name}_{ckpt_id}',
-                    filename=ckpt_id + '-{epoch}',
-                    # monitor='loss_recon/val',
-                    every_n_epochs=1,
-                    save_last=True))
+                run_id = checkpoint_id(self.hparams)
+                checkpoint_dir = Path('checkpoints') / f'{run_name}_{run_id}'
+                self.freeze_classifier(True)
             case 'finetune':
                 run_name = f'{run_name}_ft'
-                ckpt_path = None
+                checkpoint_dir = None
+                self.freeze_classifier(False)
             case _:
-                raise ValueError(f'Invalid phase ({phase}). Must be "finetune" or "pretrain".')
+                raise ValueError(
+                    f'Invalid phase ({phase}). Must be "finetune" or "pretrain".')
 
         self.phase = phase
 
-        trainer = pl.Trainer(
-            accelerator='auto',
-            max_epochs=max_epochs,
-            # accumulate_grad_batches=5,
-            #  gradient_clip_val=.5,
-            enable_progress_bar=False,
-            logger=TensorBoardLogger('lightning_logs', name=run_name,
-                                     default_hp_metric=False,
-                                     version=self._last_run_version),
-            log_every_n_steps=1,
-            callbacks=callbacks,
-            **kwargs)
+        logger = MetricLogger(run_name, root=log_root,
+                              version=self._last_run_version)
+        trainer = Trainer(max_epochs=max_epochs,
+                          device=device,
+                          checkpoint_dir=checkpoint_dir,
+                          logger=logger,
+                          **kwargs)
 
-        if phase == 'pretrain' and trainer.logger:
-            self._last_run_version = 'version_{}'.format(trainer.logger.version)
+        if phase == 'pretrain':
+            self._last_run_version = logger.version
 
-        trainer.fit(self, datamodule=datamodule, ckpt_path=ckpt_path)
-
+        datamodule.setup('fit')
+        trainer.fit(self, datamodule.train_dataloader(),
+                    datamodule.val_dataloader())
         return trainer
+
+    def load_pretrained(self, path: str | Path, strict: bool = False):
+        """Load weights written by the pretraining phase."""
+        return load_checkpoint(self, path, strict=strict)

@@ -1,6 +1,6 @@
 import pytest
-from src.acnets.pipeline import Parcellation, ConnectivityExtractor
 
+from acnets.pipeline import ConnectivityExtractor, Parcellation
 
 # 'covariance', 'correlation', 'partial correlation',
 # 'chatterjee', 'transfer_entropy', 'tangent', 'precision'
@@ -13,13 +13,15 @@ from src.acnets.pipeline import Parcellation, ConnectivityExtractor
 ])
 def test_connectivity_extractor(atlas_name, kind):
 
-  dataset = Parcellation(atlas_name=atlas_name).fit().dataset
-  timeseries = dataset['timeseries'].values
+  # xarray in, xarray out: the extractor reads dataset['timeseries'] and adds a
+  # 'connectivity' variable. This used to pass the bare .values array and then
+  # assert .shape on the returned Dataset, so it was wrong at both ends.
+  dataset = Parcellation(atlas_name=atlas_name).fit().dataset_
 
   n_subjects = dataset.coords['subject'].shape[0]
   n_regions = dataset.coords['region'].shape[0]
 
   extractor = ConnectivityExtractor(kind=kind, verbose=1)
-  conn = extractor.fit_transform(timeseries)
+  conn = extractor.fit_transform(dataset)['connectivity'].values
 
   assert conn.shape == (n_subjects, n_regions, n_regions)

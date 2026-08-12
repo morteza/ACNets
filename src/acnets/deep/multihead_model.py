@@ -1,20 +1,18 @@
 import torch
-from torch.nn import functional as F
 from torch import nn
-import pytorch_lightning as pl
-import torchmetrics as metrics
+from torch.nn import functional as F
+
+from .training import accuracy
 from .vae import VAE
 
 
-class MultiHeadModel(pl.LightningModule):
+class MultiHeadModel(nn.Module):
     def __init__(self, n_regions, n_networks, n_embeddings=2):
         super().__init__()
 
         self.n_regions = n_regions
         self.n_networks = n_networks
         self.n_embeddings = n_embeddings
-
-        self.accuracy = metrics.Accuracy(task='multiclass', num_classes=2)
 
         # X1 (region-level timeseries)
         # self.x1_autoencoder = Seq2SeqAutoEncoder(n_regions, n_embeddings)
@@ -65,8 +63,8 @@ class MultiHeadModel(pl.LightningModule):
         # h3, x3_recon = self.x3_autoencoder(x3)
         # h3 = self.x3_head(h3)
 
-        h4, x4_recon, loss_x4 = self.x4_head(x4)
-        h5, x5_recon, loss_x5 = self.x5_head(x5)
+        h4, _x4_recon, loss_x4 = self.x4_head(x4)
+        h5, _x5_recon, loss_x5 = self.x5_head(x5)
 
         loss_recon = loss_x4 + loss_x5
 
@@ -78,12 +76,22 @@ class MultiHeadModel(pl.LightningModule):
     def fine_tune(self, x1, x2, x3, x4, x5, y):
         raise NotImplementedError('Fine-tuning is not implemented yet.')
 
-    def training_step(self, batch, batch_idx):
-        x1, x2, x3, x4, x5, y = batch
+    def _vectorize(self, x4, x5):
+        """Upper triangle of each connectivity matrix, flattened.
 
-        # keep only the triu of the x4 and flatten non-zero elements
-        x4 = x4[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=1) == 1]
-        x5 = x5[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=0) == 1]
+        x4 excludes the diagonal, x5 includes it. Both were repeated verbatim in
+        four methods before; a difference introduced into one copy and not the
+        others would have been invisible.
+        """
+        device = x4.device
+        ones = torch.ones(self.n_networks, self.n_networks, device=device)
+        x4 = x4[:, torch.triu(ones, diagonal=1) == 1]
+        x5 = x5[:, torch.triu(ones, diagonal=0) == 1]
+        return x4, x5
+
+    def compute_loss(self, batch, device):
+        x1, x2, x3, x4, x5, y = [t.to(device) for t in batch]
+        x4, x5 = self._vectorize(x4, x5)
 
         y_hat, loss_recon = self(x1, x2, x3, x4, x5)
 
@@ -92,15 +100,11 @@ class MultiHeadModel(pl.LightningModule):
         loss_cls = F.cross_entropy(y_hat, y)
         loss = loss_cls + loss_recon
 
-        accuracy = self.accuracy(y_hat, y)
-        self.accuracy.reset()
-
-        self.log('train/accuracy', accuracy)
-        self.log('train/loss_cls', loss_cls)
-        self.log('train/loss_recon', loss_recon)
-        self.log('train/loss', loss)
-
-        return {'loss': loss, 'train/accuracy': accuracy}
+        return loss, {
+            'loss_cls': float(loss_cls),
+            'loss_recon': float(loss_recon),
+            'accuracy': accuracy(y_hat, y),
+        }
 
     def enable_dropout(self):
         """Enables dropout during validation and test."""
@@ -108,60 +112,45 @@ class MultiHeadModel(pl.LightningModule):
             if m.__class__.__name__.startswith('Dropout'):
                 m.train()
 
-    def validation_step(self, batch, batch_idx):
-        x1, x2, x3, x4, x5, y = batch
-
-        # keep only the triu of the x4 and flatten non-zero elements
-        x4 = x4[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=1) == 1]
-        x5 = x5[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=0) == 1]
+    @torch.no_grad()
+    def validation_step(self, batch, device):
+        x1, x2, x3, x4, x5, y = [t.to(device) for t in batch]
+        x4, x5 = self._vectorize(x4, x5)
 
         y_hat, *_ = self(x1, x2, x3, x4, x5)
-
         loss_cls = F.cross_entropy(y_hat, y)
 
-        accuracy = self.accuracy(y_hat, y.float())
-        self.accuracy.reset()
-        dropout_accuracy = self.calculate_dropout_accuracy(batch)
+        return {
+            'loss_cls': float(loss_cls),
+            'accuracy': accuracy(y_hat, y),
+            'dropout_accuracy': self.dropout_accuracy(batch, device),
+        }
 
-        self.log('val/loss_cls', loss_cls, sync_dist=True)
-        self.log('val/accuracy', accuracy, sync_dist=True)
-        self.log('val/dropout_accuracy', dropout_accuracy, sync_dist=True)
+    test_step = validation_step
 
-    def test_step(self, batch, batch_idx):
-        x1, x2, x3, x4, x5, y = batch
+    @torch.no_grad()
+    def dropout_accuracy(self, batch, device, n_repeats=10):
+        """Accuracy with dropout left on, averaged over repeats.
 
-        # keep only the triu of the x4 and flatten non-zero elements
-        x4 = x4[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=1) == 1]
-        x5 = x5[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=0) == 1]
+        A cheap posterior-predictive check: if the prediction survives having
+        random units removed, it does not rest on one path through the network.
+        """
+        x1, x2, x3, x4, x5, y = [t.to(device) for t in batch]
+        x4, x5 = self._vectorize(x4, x5)
 
-        y_hat, *_ = self(x1, x2, x3, x4, x5)
-
-        loss_cls = F.cross_entropy(y_hat, y)
-
-        accuracy = self.accuracy(y_hat, y)
-        self.accuracy.reset()
-        dropout_accuracy = self.calculate_dropout_accuracy(batch)
-
-        self.log('test/loss_cls', loss_cls, sync_dist=True)
-        self.log('test/accuracy', accuracy, sync_dist=True)
-        self.log('test/dropout_accuracy', dropout_accuracy, sync_dist=True)
-
-    def calculate_dropout_accuracy(self, batch, n_repeats=10):
-        x1, x2, x3, x4, x5, y = batch
-
-        x4 = x4[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=1) == 1]
-        x5 = x5[:, torch.triu(torch.ones(self.n_networks, self.n_networks), diagonal=0) == 1]
-
+        was_training = self.training
+        self.eval()
         self.enable_dropout()
 
-        accuracy = 0
+        total = 0.0
         for _ in range(n_repeats):
             y_hat, *_ = self(x1, x2, x3, x4, x5)
-            accuracy += self.accuracy(y_hat, y)
-            self.accuracy.reset()
-        accuracy /= n_repeats
+            total += accuracy(y_hat, y)
 
-        return accuracy
+        # restore whatever mode the caller was in; the Lightning version left
+        # dropout enabled for everything that ran after it
+        self.train(was_training)
+        return total / n_repeats
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)

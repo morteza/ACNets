@@ -1,8 +1,8 @@
-import pytest
-from src.acnets.pipeline import Parcellation
-from src.acnets.pipeline import TimeseriesAggregator
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
+
+from acnets.pipeline import Parcellation, TimeseriesAggregator
 
 
 @pytest.mark.parametrize('atlas_name', [
@@ -12,26 +12,34 @@ import numpy as np
 ])
 def test_network_aggregator(atlas_name):
 
+    # TimeseriesAggregator took a `mapping` DataFrame when this was written; it
+    # now reads the `network` coordinate off the dataset and is selected with
+    # `strategy`. Both it and Parcellation deal in xarray Datasets, so the shape
+    # assertion has to go through the `timeseries` variable rather than the
+    # Dataset, which has no .shape.
     parcellation = Parcellation(atlas_name=atlas_name)
-    X = parcellation.fit_transform(None)
+    X = parcellation.fit_transform('all')
 
-    region_to_network = parcellation.labels_['network'].to_dict()
-    region_to_network = pd.DataFrame.from_dict(region_to_network, orient='index', columns=['group'])
-
-    aggregator = TimeseriesAggregator(mapping=region_to_network)
+    aggregator = TimeseriesAggregator(strategy='network')
     X_agg = aggregator.fit_transform(X)
 
-    n_subjects = X.shape[0]
-    n_timepoints = X.shape[1]
+    n_subjects = X.sizes['subject']
+    n_timepoints = X.sizes['timepoint']
     n_networks = parcellation.labels_['network'].nunique()
-    assert X_agg.shape == (n_subjects, n_timepoints, n_networks)
+
+    assert X_agg['timeseries'].shape == (n_subjects, n_timepoints, n_networks)
+    assert X_agg.attrs['timeseries_aggregation_strategy'] == 'network'
+    # the region-level signal is kept alongside, not thrown away
+    assert X_agg['region_timeseries'].shape == (n_subjects, n_timepoints,
+                                                len(parcellation.labels_))
 
 
 def test_connectivity_aggregator_algorithm():
     """standalone implementation of the connectivity matrix aggregation.
 
-    This is the core algorithm that is implemented in the ConnectivityAggregator class to
-    aggregate region-level connectivity matrices into networks, random networks, or the same regions.
+    This is the core algorithm that is implemented in the ConnectivityAggregator
+    class to aggregate region-level connectivity matrices into networks, random
+    networks, or the same regions.
 
     """
 
@@ -49,12 +57,22 @@ def test_connectivity_aggregator_algorithm():
     X_regions.index.names = ['region_row', 'group_row']
     X_regions.columns.names = ['region_col', 'group_col']
 
-    X_regions = X_regions.reset_index().melt(id_vars=['region_row', 'group_row'],
-                                             value_name='connectivity')
+    # stack rather than reset_index().melt(): with a MultiIndex on the columns
+    # too, reset_index names the inserted columns ('region_row', '') and the
+    # melt cannot find its id_vars.
+    X_long = (X_regions
+              .stack(['region_col', 'group_col'], future_stack=True)
+              .rename('connectivity')
+              .reset_index())
 
-    X_networks = X_regions.groupby(['group_row', 'group_col'], sort=True)
-    X_networks = X_networks['connectivity'].apply(lambda v: np.mean(v))
+    X_networks = X_long.groupby(['group_row', 'group_col'], sort=True)
+    X_networks = X_networks['connectivity'].mean()
 
-    X_networks = X_networks.reset_index().pivot(index='group_row', columns='group_col')
+    X_networks = X_networks.reset_index().pivot(index='group_row',
+                                                columns='group_col',
+                                                values='connectivity')
 
     assert X_networks.shape == (n_networks, n_networks)
+    # aggregation is a mean over the region pairs, so it stays in range
+    assert X_networks.to_numpy().min() >= X.min()
+    assert X_networks.to_numpy().max() <= X.max()

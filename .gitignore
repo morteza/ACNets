@@ -174,3 +174,10 @@ lightning_logs/
 .~lock.*
 /checkpoints
 octave-workspace
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# macOS
+.DS_Store
+**/.DS_Store

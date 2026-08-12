@@ -35,4 +35,10 @@ class ExtraConnectivityMeasure(connectome.ConnectivityMeasure):
       from ._chatterjee import chatterjee_xicoef
       return chatterjee_xicoef(X)
     else:
-      return super().fit_transform(X, y, confounds)
+      # transform, not fit_transform. The two are interchangeable for the
+      # per-subject statistics, but not for `tangent`, which projects each
+      # subject onto a group mean covariance learned in fit. Re-fitting here
+      # would give the test fold its own reference point, silently making the
+      # tangent specifications non-comparable across folds. Callers that want
+      # the old behaviour should call fit_transform explicitly.
+      return super().transform(X, confounds)

@@ -34,6 +34,12 @@ class ConnectivityExtractor(TransformerMixin, BaseEstimator):
         ['subject', self.node_type + '_src', self.node_type + '_dst'],
         conn)
 
+    # record which statistic produced this matrix. A connectivity dataset that
+    # has lost track of its own kind cannot be told apart from another once the
+    # two are side by side, which is the normal situation in the multiverse.
+    new_dataset['connectivity'].attrs['kind'] = self.kind
+    new_dataset.attrs['connectivity_kind'] = self.kind
+
     return new_dataset
 
   def get_feature_names_out(self, input_features=None, sep=' \N{left right arrow} '):

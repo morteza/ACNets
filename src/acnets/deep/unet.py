@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
 
 
 class DownBlock(nn.Module):
@@ -58,9 +57,9 @@ class UpBlock(nn.Module):
         return out
 
 
-class UNet(pl.LightningModule):
+class UNet(nn.Module):
     def __init__(self, n_blocks):
-        super(UNet, self).__init__()
+        super().__init__()
 
         self.down = [DownBlock(1, 1) for _ in range(n_blocks)]
         self.center = UpBlock()

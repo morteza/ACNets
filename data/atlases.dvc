@@ -1,0 +1,6 @@
+outs:
+- md5: 486512f1d1a4b0667c70a3187a488ad8.dir
+  size: 72972
+  nfiles: 3
+  hash: md5
+  path: atlases
