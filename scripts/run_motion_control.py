@@ -119,7 +119,7 @@ def main() -> None:
               f'd = {c["d"]:+.2f}  p = {c["p"]:.3f}')
 
     n_raw = sum(1 for c in comparisons.values() if c['p'] < 0.05)
-    # Holm over 18 comparisons; the uncorrected count is reported too because
+    # Holm over every channel summary present; the uncorrected count is reported too because
     # "no channel survives correction" and "no channel is nominally significant"
     # are different claims and a reviewer will want both.
     n_tests = len(comparisons)

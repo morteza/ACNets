@@ -10,7 +10,7 @@ So this changes the input rather than the model. Four modalities are available
 per participant, and only the first has ever been used:
 
   connectivity  21 network edges (the paper's feature space)
-  structural    267 regional grey-matter volumes from fmriprep aparc+aseg
+  structural    corrected native-space GM volumes (ANTs pipeline, AAL parcels)
   motion        20 summaries of head movement -- decodes at 0.61 on its own
   behaviour     accuracy, median RT and inverse efficiency on the attention task
 
@@ -86,7 +86,13 @@ def modalities(seed: int) -> dict[str, pd.DataFrame]:
     connectivity = pd.DataFrame(
         vectorize(measure.transform(timeseries['network']), False), index=subjects)
 
-    structural = pd.read_csv('outputs/structural_volumes.csv', index_col=0)
+    # corrected ANTs GMV from segment_t1.py, not the legacy fmriprep
+    # aparc+aseg table -- same source as run_full_multimodal.py
+    structural = (pd.read_csv('data/Julia2018/derivatives/gmv_julia2018_aal.csv')
+                  .set_index('subject'))
+    structural = structural.drop(
+        columns=[c for c in ('total_gm_mm3', 'brain_mask_cm3')
+                 if c in structural.columns])
     structural.index = [str(i) for i in structural.index]
 
     motion_table, _ = load_motion()
